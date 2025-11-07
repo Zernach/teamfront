@@ -1,0 +1,9 @@
+.ebextensions/
+target/
+!target/*.jar
+.idea/
+*.iml
+.git/
+.gitignore
+*.jar.original
+

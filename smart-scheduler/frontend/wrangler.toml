@@ -1,0 +1,13 @@
+# Cloudflare Pages configuration for Expo Router
+# This file is used by Cloudflare Pages for deployment settings
+
+[build]
+  command = "npm install && npm run build:web"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
+
+
+

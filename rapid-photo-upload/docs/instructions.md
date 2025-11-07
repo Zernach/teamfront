@@ -11,8 +11,8 @@ Users expect seamless, high-speed media uploads without application freezing. Th
 High-Volume Concurrency: The system MUST support the simultaneous uploading of up to 100 photos per user session.
 Asynchronous UI: Users MUST be able to continue navigating and interacting with the application (both web and mobile) while uploads are in progress.
 Real-Time Status: Display individual and batch upload progress using responsive indicators (e.g., progress bars) with real-time status updates (Uploading, Failed, Complete).
-Web Interface: A dedicated web interface for viewing, tagging, and downloading previously uploaded photos.
-Mobile Interface: A dedicated mobile application (React Native or Flutter) that mirrors the upload and viewing functionality.
+Web Interface: React Native web interface for viewing, tagging, and downloading previously uploaded photos.
+Mobile Interface: React Native mobile app that mirrors the upload and viewing functionality.
 Backend Handling: The backend must manage concurrent requests, store file metadata, and efficiently stream/store the binary files in cloud object storage.
 Authentication: Basic authentication (mocked or JWT-based) is required to secure access for both mobile and web clients.
 Project Scope: This is a two-part project consisting of one mobile application and one web application, both integrated with the same shared backend API.
@@ -24,8 +24,8 @@ CQRS (Command Query Responsibility Segregation): Implement a clear separation be
 Vertical Slice Architecture (VSA): Organize the backend code around features (e.g., UploadPhotoSlice, GetPhotoMetadataSlice).
 3.2 Technical Stack
 Back-End (API): Java with Spring Boot. Must handle large, asynchronous requests efficiently.
-Web Front-End: TypeScript with React.js.
-Mobile Front-End: React Native or Flutter.
+Web Front-End: TypeScript React Native
+Mobile Front-End: TypeScript React Native
 Cloud Storage (Mandatory): Files MUST be stored in a scalable object storage solution: AWS S3 or Azure Blob Storage.
 Database: PostgreSQL is required for persisting metadata (User, Photo, Upload Job Status).
 Cloud Platforms: Deployment target flexibility: AWS or Azure.
@@ -36,7 +36,7 @@ UI Responsiveness: Both the mobile and web interfaces MUST remain fluid and full
 4.1 Code Quality Standards (Mandatory)
 Architecture: Clean separation of concerns across Domain, Application, and Infrastructure layers.
 Backend: Must demonstrate robust handling of concurrency, including mechanisms for retries and efficient streaming of large file uploads.
-Frontend: Both React/Next.js and React Native/Flutter apps must use a clean, component-based architecture and adhere strictly to TypeScript standards.
+Frontend: Both React/Next.js and React Native apps must use a clean, component-based architecture and adhere strictly to TypeScript standards.
 Readability: Consistent naming conventions, modularity, and comprehensive documentation are required.
 4.2 Testing (Mandatory)
 Integration Tests: MUST implement integration tests that validate the complete upload process, from the client (simulated mobile/web) through the backend services and ending with successful persistent storage in the cloud object store.

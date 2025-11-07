@@ -38,7 +38,7 @@ Vertical Slice Architecture (VSA): Organize the code around features or use case
 Layer Separation: Maintain clear boundaries between the Domain, Application, and Infrastructure layers (Clean Architecture).
 3.2 Technical Stack
 Back-End (API): Java with Spring Boot. Must expose RESTful APIs.
-Front-End (UI): TypeScript with React.js or Next.js. Must adhere to MVVM (Model-View-ViewModel) principles for UI logic.
+Front-End (UI): TypeScript with React Native. Must adhere to MVVM (Model-View-ViewModel) principles for UI logic.
 Database: PostgreSQL is preferred for production readiness simulation; however, an in-memory database (H2 or SQLite) is permitted for testing and rapid development.
 Cloud Platforms: Deployment target flexibility: AWS or Azure.
 3.3 Performance Benchmarks

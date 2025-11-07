@@ -31,7 +31,7 @@ CQRS: Implement a clean separation between Commands (e.g., AssignJob, UpdateCont
 Layer Separation: Maintain clean boundaries between the Domain, Application, and Infrastructure layers.
 3.2 Technical Stack and Infrastructure
 Back-End (API): C# with .NET 8 (Mandatory).
-Front-End (UI): TypeScript with React or Next.js.
+Front-End (UI): TypeScript with React Native.
 Real-Time Messaging: SignalR is required for real-time communication (e.g., pushing JobAssigned events to the dispatcher or contractor).
 Database: PostgreSQL or SQL Server.
 Cloud Platform: AWS (Mandatory).

@@ -1,0 +1,1 @@
+web: java $JAVA_OPTS -jar rapid-photo-upload-backend-1.0.0.jar --server.port=5000

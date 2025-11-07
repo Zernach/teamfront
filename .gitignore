@@ -1,0 +1,3 @@
+# IDE-specific directories
+.claude/
+.cursor/

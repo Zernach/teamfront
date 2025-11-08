@@ -1,11 +1,12 @@
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Head from 'expo-router/head';
 
 export default function RootLayout() {
   return (
-    <>
+    <SafeAreaProvider>
       <Head>
         <title>Invoice Me</title>
       </Head>
@@ -16,7 +17,7 @@ export default function RootLayout() {
           }}
         />
       </GestureHandlerRootView>
-    </>
+    </SafeAreaProvider>
   );
 }
 

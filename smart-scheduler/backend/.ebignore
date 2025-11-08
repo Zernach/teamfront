@@ -1,0 +1,26 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.cache
+.git/
+.gitignore
+*.pdb
+*.dll.config
+*.xml
+publish/
+# Exclude source files but keep published artifacts
+*.cs
+*.csproj
+!SmartScheduler.csproj
+Controllers/
+Program.cs
+global.json
+# Explicitly include necessary runtime files
+!*.dll
+!*.so
+!*.json
+!appsettings*.json
+!SmartScheduler
+!Procfile

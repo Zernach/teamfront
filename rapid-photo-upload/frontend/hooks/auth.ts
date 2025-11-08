@@ -3,6 +3,7 @@ import apiClient from '../services/apiClient';
 import { useAppDispatch } from './redux';
 import { setAuth, clearAuth } from '../store/authSlice';
 import { User } from '../types';
+import tokenStorage from '../services/tokenStorage';
 
 interface LoginRequest {
   username: string;
@@ -36,9 +37,7 @@ export const useLogin = () => {
         token: data.accessToken,
       }));
       // Store refresh token separately (could use httpOnly cookie in production)
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem('refresh_token', data.refreshToken);
-      }
+      tokenStorage.setRefreshToken(data.refreshToken).catch(console.error);
     },
   });
 };
@@ -52,9 +51,7 @@ export const useLogout = () => {
     },
     onSuccess: () => {
       dispatch(clearAuth());
-      if (typeof window !== 'undefined') {
-        window.localStorage.removeItem('refresh_token');
-      }
+      tokenStorage.clearRefreshToken().catch(console.error);
     },
   });
 };
@@ -71,9 +68,7 @@ export const useRegister = () => {
 export const useRefreshToken = () => {
   return useMutation({
     mutationFn: async () => {
-      const refreshToken = typeof window !== 'undefined' 
-        ? window.localStorage.getItem('refresh_token')
-        : null;
+      const refreshToken = await tokenStorage.getRefreshToken();
       
       if (!refreshToken) {
         throw new Error('No refresh token available');

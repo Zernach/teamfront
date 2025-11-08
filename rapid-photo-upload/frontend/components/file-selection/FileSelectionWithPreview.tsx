@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { View, Image, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, Image, StyleSheet, TouchableOpacity, Text, Platform } from 'react-native';
 import { FileSelection } from './FileSelection';
 import { useAppSelector } from '../../hooks/redux';
+import { COLORS } from '../../constants/colors';
 
 export function FileSelectionWithPreview() {
   const [previews, setPreviews] = useState<Map<string, string>>(new Map());
@@ -11,8 +12,23 @@ export function FileSelectionWithPreview() {
     // Generate previews for selected files
     const newPreviews = new Map(previews);
     files.forEach((file) => {
-      const objectUrl = URL.createObjectURL(file);
-      newPreviews.set(file.name, objectUrl);
+      let previewUrl: string;
+      
+      // Handle React Native file objects (with uri property) vs web File objects
+      if ('uri' in file && file.uri) {
+        // React Native - use the uri directly
+        previewUrl = file.uri;
+      } else {
+        // Web - create object URL
+        if (Platform.OS === 'web' && typeof URL !== 'undefined' && URL.createObjectURL) {
+          previewUrl = URL.createObjectURL(file);
+        } else {
+          // Fallback - use file name as key only
+          previewUrl = `file://${file.name}`;
+        }
+      }
+      
+      newPreviews.set(file.name, previewUrl);
     });
     setPreviews(newPreviews);
   }, [previews]);
@@ -20,7 +36,10 @@ export function FileSelectionWithPreview() {
   const removePreview = useCallback((fileName: string) => {
     const url = previews.get(fileName);
     if (url) {
-      URL.revokeObjectURL(url);
+      // Only revoke object URLs on web
+      if (Platform.OS === 'web' && typeof URL !== 'undefined' && URL.revokeObjectURL && url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
     }
     const newPreviews = new Map(previews);
     newPreviews.delete(fileName);
@@ -71,37 +90,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
+    color: COLORS.white,
   },
   previewGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    marginHorizontal: -6,
   },
   previewItem: {
     width: 120,
     alignItems: 'center',
+    margin: 6,
   },
   previewImage: {
     width: 120,
     height: 120,
     borderRadius: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: COLORS.background99,
   },
   previewFileName: {
     fontSize: 12,
     marginTop: 4,
     textAlign: 'center',
     width: '100%',
+    color: COLORS.white,
   },
   removeButton: {
     marginTop: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: '#ff4444',
+    backgroundColor: COLORS.red,
     borderRadius: 4,
   },
   removeButtonText: {
-    color: '#fff',
+    color: COLORS.white,
     fontSize: 12,
   },
 });

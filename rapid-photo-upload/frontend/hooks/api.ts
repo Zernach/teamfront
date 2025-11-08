@@ -72,7 +72,14 @@ export const useUploadPhoto = () => {
   return useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
-      formData.append('file', file);
+      // Handle React Native file objects (with uri property) vs web File objects
+      if ('uri' in file && file.uri) {
+        // React Native file object
+        formData.append('file', file as any);
+      } else {
+        // Web File object
+        formData.append('file', file);
+      }
       
       const response = await apiClient.post('/photos/upload', formData, {
         headers: {
@@ -95,7 +102,14 @@ export const useUploadBatch = () => {
     mutationFn: async (files: File[]) => {
       const formData = new FormData();
       files.forEach((file) => {
-        formData.append('files', file);
+        // Handle React Native file objects (with uri property) vs web File objects
+        if ('uri' in file && file.uri) {
+          // React Native file object
+          formData.append('files', file as any);
+        } else {
+          // Web File object
+          formData.append('files', file);
+        }
       });
       
       const response = await apiClient.post('/photos/upload/batch', formData, {

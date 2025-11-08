@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, RefreshContr
 import { usePhotosInfinite } from '../../hooks/api';
 import { Photo } from '../../types';
 import { formatRelativeTime } from '../../utils';
+import { COLORS } from '../../constants/colors';
 
 interface PhotoGridProps {
   onPhotoPress?: (photo: Photo) => void;
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: COLORS.background99,
     position: 'relative',
   },
   photoImage: {
@@ -139,13 +140,13 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   photoFilename: {
-    color: '#fff',
+    color: COLORS.white,
     fontSize: 12,
     fontWeight: '500',
     marginBottom: 2,
   },
   photoDate: {
-    color: '#fff',
+    color: COLORS.white,
     fontSize: 10,
     opacity: 0.8,
   },
@@ -153,13 +154,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: '#ff9800',
+    backgroundColor: COLORS.red,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   statusText: {
-    color: '#fff',
+    color: COLORS.white,
     fontSize: 10,
     fontWeight: '600',
   },
@@ -171,7 +172,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
+    color: COLORS.grey,
   },
   emptyContainer: {
     flex: 1,
@@ -182,12 +183,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.white,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.grey,
   },
   footer: {
     padding: 20,

@@ -5,6 +5,8 @@ import { updateProgress, markCompleted, markFailed } from '../../store/uploadSli
 import { useUploadPhoto, useUploadBatch } from '../../hooks/api';
 import { formatFileSize } from '../../utils';
 import webSocketClient from '../../services/webSocketClient';
+import { COLORS } from '../../constants/colors';
+import tokenStorage from '../../services/tokenStorage';
 
 export function UploadQueue() {
   const queue = useAppSelector((state) => state.upload.queue);
@@ -15,13 +17,14 @@ export function UploadQueue() {
 
   useEffect(() => {
     // Connect WebSocket for real-time updates
-    const token = typeof window !== 'undefined' 
-      ? window.localStorage.getItem('auth_token')
-      : null;
-    
-    if (token) {
-      webSocketClient.connect(token);
-    }
+    const connectWebSocket = async () => {
+      const token = await tokenStorage.getAuthToken();
+      if (token) {
+        webSocketClient.connect(token);
+      }
+    };
+
+    connectWebSocket();
 
     return () => {
       webSocketClient.disconnect();
@@ -59,13 +62,13 @@ export function UploadQueue() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return '#4CAF50';
+        return COLORS.primary;
       case 'failed':
-        return '#f44336';
+        return COLORS.red;
       case 'uploading':
-        return '#2196F3';
+        return COLORS.primary;
       default:
-        return '#9E9E9E';
+        return COLORS.grey;
     }
   };
 
@@ -149,20 +152,21 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#666',
+    color: COLORS.grey,
   },
   title: {
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 16,
+    color: COLORS.white,
   },
   queueItem: {
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.background99,
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: COLORS.tan50,
   },
   queueItemHeader: {
     flexDirection: 'row',
@@ -175,6 +179,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
     marginRight: 8,
+    color: COLORS.white,
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -182,7 +187,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   statusText: {
-    color: '#fff',
+    color: COLORS.black,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -194,30 +199,30 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 8,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: COLORS.tan50,
     borderRadius: 4,
     overflow: 'hidden',
     marginRight: 8,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#2196F3',
+    backgroundColor: COLORS.primary,
     borderRadius: 4,
   },
   progressText: {
     fontSize: 12,
-    color: '#666',
+    color: COLORS.grey,
     minWidth: 40,
     textAlign: 'right',
   },
   errorText: {
     fontSize: 12,
-    color: '#f44336',
+    color: COLORS.red,
     marginTop: 4,
   },
   fileSize: {
     fontSize: 12,
-    color: '#666',
+    color: COLORS.grey,
     marginTop: 4,
   },
 });

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useAppSelector } from '../../hooks/redux';
 import { UploadQueue } from './UploadQueue';
+import { COLORS } from '../../constants/colors';
 
 export function UploadQueueWithSummary() {
   const queue = useAppSelector((state) => state.upload.queue);
@@ -22,15 +23,15 @@ export function UploadQueueWithSummary() {
         </View>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Completed</Text>
-          <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>{completed}</Text>
+          <Text style={[styles.summaryValue, { color: COLORS.primary }]}>{completed}</Text>
         </View>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Uploading</Text>
-          <Text style={[styles.summaryValue, { color: '#2196F3' }]}>{uploading}</Text>
+          <Text style={[styles.summaryValue, { color: COLORS.primary }]}>{uploading}</Text>
         </View>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Failed</Text>
-          <Text style={[styles.summaryValue, { color: '#f44336' }]}>{failed}</Text>
+          <Text style={[styles.summaryValue, { color: COLORS.red }]}>{failed}</Text>
         </View>
         <View style={styles.summaryItem}>
           <Text style={styles.summaryLabel}>Queued</Text>
@@ -50,22 +51,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     padding: 16,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.background99,
     borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    borderBottomColor: COLORS.tan50,
   },
   summaryItem: {
     alignItems: 'center',
   },
   summaryLabel: {
     fontSize: 12,
-    color: '#666',
+    color: COLORS.grey,
     marginBottom: 4,
   },
   summaryValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.white,
   },
 });
 

@@ -49,6 +49,7 @@ export const COLORS = {
     primary99: '#72fa4199',
     primary80: '#72fa4180',
     primary60: '#72fa4160',
+    primary20: '#72fa4120',
     linkedin: '#0077B5',
     black: '#000000',
     transparent: 'transparent',

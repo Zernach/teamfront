@@ -1,8 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { isValidImageFile, isValidFileSize, generateUploadId } from '../../utils';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, ActivityIndicator, Alert } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { isValidImageFile, isValidFileSize, generateUploadId, imagePickerResultToFile } from '../../utils';
 import { useAppDispatch } from '../../hooks/redux';
 import { addToQueue } from '../../store/uploadSlice';
+import { COLORS } from '../../constants/colors';
 
 interface FileSelectionProps {
   maxFiles?: number;
@@ -16,6 +18,7 @@ export function FileSelection({
   onFilesSelected,
 }: FileSelectionProps) {
   const [dragActive, setDragActive] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const dispatch = useAppDispatch();
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -82,11 +85,123 @@ export function FileSelection({
     }
   }, []);
 
+  // Native platform image picker handlers
+  const requestPermissions = useCallback(async () => {
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Sorry, we need camera roll permissions to upload photos!',
+          [{ text: 'OK' }]
+        );
+        return false;
+      }
+    }
+    return true;
+  }, []);
+
+  const pickImagesFromLibrary = useCallback(async () => {
+    const hasPermission = await requestPermissions();
+    if (!hasPermission) return;
+
+    try {
+      setIsLoading(true);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 1,
+        selectionLimit: maxFiles,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        // Convert image picker results to File objects
+        const filePromises = result.assets.map((asset) =>
+          imagePickerResultToFile(asset.uri, asset.fileName || undefined)
+        );
+        const files = await Promise.all(filePromises);
+        handleFiles(files);
+      }
+    } catch (error) {
+      console.error('Error picking images:', error);
+      Alert.alert('Error', 'Failed to select images. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [requestPermissions, maxFiles, handleFiles]);
+
+  const takePhoto = useCallback(async () => {
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Sorry, we need camera permissions to take photos!',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+    }
+
+    try {
+      setIsLoading(true);
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+        allowsEditing: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const file = await imagePickerResultToFile(asset.uri, asset.fileName || undefined);
+        handleFiles([file]);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [handleFiles]);
+
+  const showImagePickerOptions = useCallback(() => {
+    if (Platform.OS === 'web') return;
+
+    Alert.alert(
+      'Select Photos',
+      'Choose an option',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Take Photo', onPress: takePhoto },
+        { text: 'Choose from Library', onPress: pickImagesFromLibrary },
+      ],
+      { cancelable: true }
+    );
+  }, [takePhoto, pickImagesFromLibrary]);
+
   if (Platform.OS !== 'web') {
-    // For native platforms, use different file picker (will be implemented in mobile epic)
     return (
       <View style={styles.container}>
-        <Text>File selection for native platforms will be implemented in mobile epic</Text>
+        <TouchableOpacity
+          style={[styles.nativeButton, isLoading && styles.nativeButtonDisabled]}
+          onPress={showImagePickerOptions}
+          disabled={isLoading}
+          activeOpacity={0.8}
+        >
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={COLORS.white} />
+              <Text style={styles.nativeButtonText}>Processing...</Text>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.nativeButtonText}>Select Photos</Text>
+              <Text style={styles.nativeButtonSubtext}>
+                Maximum {maxFiles} files, {maxFileSizeMB}MB per file
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
     );
   }
@@ -138,15 +253,16 @@ export function FileSelection({
         style={{
           borderWidth: 2,
           borderStyle: 'dashed',
-          borderColor: dragActive ? '#007AFF' : '#ccc',
+          borderColor: dragActive ? COLORS.primary : COLORS.tan50,
           borderRadius: 8,
           padding: 40,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: dragActive ? '#e3f2fd' : '#f9f9f9',
+          backgroundColor: dragActive ? COLORS.primary20 : COLORS.background99,
           minHeight: 200,
           cursor: 'pointer',
+          transition: 'all 0.2s ease',
         }}
         onClick={openFileDialog}
         onDragEnter={handleDragEnter}
@@ -172,30 +288,61 @@ const styles = StyleSheet.create({
   dropZone: {
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#ccc',
+    borderColor: COLORS.tan50,
     borderRadius: 8,
     padding: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: COLORS.background99,
     minHeight: 200,
     cursor: 'pointer',
   },
   dropZoneActive: {
-    borderColor: '#007AFF',
-    backgroundColor: '#e3f2fd',
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primary20,
   },
   dropZoneText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: COLORS.white,
     marginBottom: 8,
     textAlign: 'center',
   },
   dropZoneSubtext: {
     fontSize: 14,
-    color: '#666',
+    color: COLORS.grey,
     textAlign: 'center',
+  },
+  nativeButton: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: COLORS.primary,
+    borderRadius: 8,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.background99,
+    minHeight: 120,
+  },
+  nativeButtonDisabled: {
+    opacity: 0.6,
+  },
+  nativeButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.white,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  nativeButtonSubtext: {
+    fontSize: 14,
+    color: COLORS.grey,
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

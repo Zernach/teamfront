@@ -16,14 +16,23 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.rapidphotoupload.app"
+      "bundleIdentifier": "org.archlife.teamfront.rapidphotoupload",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload photos.",
+        "NSCameraUsageDescription": "This app needs access to your camera to take photos for upload."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#1c1c1c"
       },
-      "package": "com.rapidphotoupload.app"
+      "package": "org.archlife.teamfront.rapidphotoupload",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/icon.png",
@@ -31,7 +40,14 @@
       "output": "static"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you upload them.",
+          "cameraPermission": "The app accesses your camera to let you take photos for upload."
+        }
+      ]
     ],
     "scheme": "rapid-photo-upload"
   }

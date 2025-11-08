@@ -1,0 +1,102 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using SmartScheduler.Commands;
+using SmartScheduler.Data;
+using SmartScheduler.Models;
+
+namespace SmartScheduler.Handlers;
+
+public class CreateContractorHandler : IRequestHandler<CreateContractorCommand, CreateContractorResponse>
+{
+    private readonly ApplicationDbContext _context;
+
+    public CreateContractorHandler(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<CreateContractorResponse> Handle(CreateContractorCommand request, CancellationToken cancellationToken)
+    {
+        // Check for duplicate contractor (name + location)
+        var duplicateExists = await _context.Contractors
+            .AnyAsync(c => 
+                c.Name == request.Name &&
+                c.BaseLocation.Address == request.BaseLocation.Address &&
+                c.BaseLocation.City == request.BaseLocation.City &&
+                c.BaseLocation.State == request.BaseLocation.State &&
+                c.BaseLocation.ZipCode == request.BaseLocation.ZipCode,
+                cancellationToken);
+
+        if (duplicateExists)
+        {
+            throw new InvalidOperationException(
+                $"A contractor with name '{request.Name}' already exists at the same location.");
+        }
+
+        // Set default working hours if not provided (Mon-Fri 8AM-5PM)
+        var workingHours = request.WorkingHours ?? GetDefaultWorkingHours();
+
+        var now = DateTime.UtcNow;
+        var contractor = new Contractor
+        {
+            Id = Guid.NewGuid(),
+            Name = request.Name,
+            Type = request.Type,
+            Rating = 0.00m,
+            Status = ContractorStatus.Active,
+            PhoneNumber = request.PhoneNumber,
+            Email = request.Email,
+            BaseLocation = request.BaseLocation,
+            Skills = request.Skills ?? new List<string>(),
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        // Add working hours
+        contractor.WorkingHours = workingHours.Select(wh => new ContractorWorkingHours
+        {
+            ContractorId = contractor.Id,
+            DayOfWeek = wh.DayOfWeek,
+            StartTime = wh.StartTime,
+            EndTime = wh.EndTime
+        }).ToList();
+
+        _context.Contractors.Add(contractor);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new CreateContractorResponse
+        {
+            Id = contractor.Id,
+            Name = contractor.Name,
+            Type = contractor.Type,
+            Rating = contractor.Rating,
+            Status = contractor.Status,
+            PhoneNumber = contractor.PhoneNumber,
+            Email = contractor.Email,
+            BaseLocation = contractor.BaseLocation,
+            Skills = contractor.Skills,
+            WorkingHours = contractor.WorkingHours.Select(wh => new WorkingHours
+            {
+                DayOfWeek = wh.DayOfWeek,
+                StartTime = wh.StartTime,
+                EndTime = wh.EndTime
+            }).ToList(),
+            CreatedAt = contractor.CreatedAt,
+            UpdatedAt = contractor.UpdatedAt
+        };
+    }
+
+    private static List<WorkingHours> GetDefaultWorkingHours()
+    {
+        // Mon-Fri 8AM-5PM (Monday = 1, Friday = 5)
+        return new List<WorkingHours>
+        {
+            new() { DayOfWeek = 1, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(17, 0) },
+            new() { DayOfWeek = 2, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(17, 0) },
+            new() { DayOfWeek = 3, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(17, 0) },
+            new() { DayOfWeek = 4, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(17, 0) },
+            new() { DayOfWeek = 5, StartTime = new TimeOnly(8, 0), EndTime = new TimeOnly(17, 0) }
+        };
+    }
+}
+

@@ -1,0 +1,40 @@
+stories:
+  "1-1":
+    status: done
+    epic: 1
+  "1-2":
+    status: done
+    epic: 1
+  "1-3":
+    status: done
+    epic: 1
+  "1-4":
+    status: done
+    epic: 1
+  "2-1":
+    status: drafted
+    epic: 2
+  "2-2":
+    status: drafted
+    epic: 2
+  "3-1":
+    status: drafted
+    epic: 3
+  "3-2":
+    status: drafted
+    epic: 3
+  "4-1":
+    status: drafted
+    epic: 4
+  "4-2":
+    status: drafted
+    epic: 4
+  "5-1":
+    status: drafted
+    epic: 5
+  "5-2":
+    status: drafted
+    epic: 5
+  "5-3":
+    status: drafted
+    epic: 5

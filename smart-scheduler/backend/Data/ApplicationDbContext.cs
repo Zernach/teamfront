@@ -46,6 +46,7 @@ public class ApplicationDbContext : DbContext
                 .HasColumnName("status")
                 .HasConversion<int>()
                 .HasDefaultValue(ContractorStatus.Active)
+                .HasSentinel((ContractorStatus)0)
                 .IsRequired();
             
             entity.Property(e => e.PhoneNumber)
@@ -103,7 +104,12 @@ public class ApplicationDbContext : DbContext
                     v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
                     v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>()
                 )
-                .HasDefaultValue("[]");
+                .Metadata.SetValueComparer(
+                    new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<List<string>>(
+                        (c1, c2) => c1 != null && c2 != null && c1.SequenceEqual(c2),
+                        c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                        c => c.ToList()
+                    ));
             
             entity.Property(e => e.CreatedAt)
                 .HasColumnName("created_at")
@@ -114,9 +120,13 @@ public class ApplicationDbContext : DbContext
                 .IsRequired();
             
             // Optimistic concurrency control
+            // For PostgreSQL, use xmin for row versioning instead of a bytea column
             entity.Property(e => e.RowVersion)
                 .HasColumnName("row_version")
-                .IsRowVersion();
+                .IsRequired()
+                .IsConcurrencyToken()
+                .HasDefaultValueSql("'\\x00000000000000000000000000000000'::bytea")
+                .ValueGeneratedOnAddOrUpdate();
         });
 
         // Configure ContractorWorkingHours entity

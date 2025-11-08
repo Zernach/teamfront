@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartScheduler.Commands;
 using SmartScheduler.DTOs;
+using SmartScheduler.Models;
 using SmartScheduler.Queries;
 
 namespace SmartScheduler.Controllers;
@@ -16,6 +17,37 @@ public class ContractorsController : ControllerBase
     public ContractorsController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<ContractorListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<ContractorListItemDto>>> ListContractors(
+        [FromQuery] string? name = null,
+        [FromQuery] ContractorType? type = null,
+        [FromQuery] decimal? minRating = null,
+        [FromQuery] decimal? maxRating = null,
+        [FromQuery] string? city = null,
+        [FromQuery] string? state = null,
+        [FromQuery] bool includeInactive = false,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new ListContractorsQuery
+        {
+            Name = name,
+            Type = type,
+            MinRating = minRating,
+            MaxRating = maxRating,
+            City = city,
+            State = state,
+            IncludeInactive = includeInactive,
+            Page = page,
+            PageSize = pageSize
+        };
+        
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
     }
 
     [HttpPost]

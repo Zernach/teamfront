@@ -84,8 +84,10 @@ public class UpdateContractorHandler : IRequestHandler<UpdateContractorCommand, 
             }).ToList();
         }
 
-        // Update timestamp
-        contractor.UpdatedAt = DateTime.UtcNow;
+        // Update timestamp and row version
+        var now = DateTime.UtcNow;
+        contractor.UpdatedAt = now;
+        contractor.RowVersion = BitConverter.GetBytes(now.Ticks);
 
         await _context.SaveChangesAsync(cancellationToken);
 

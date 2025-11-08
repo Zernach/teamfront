@@ -8,6 +8,7 @@ import com.invoiceme.features.customers.dto.PagedCustomerListDto;
 import com.invoiceme.features.customers.infrastructure.CustomerEntity;
 import com.invoiceme.features.customers.infrastructure.CustomerJpaRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -42,11 +43,53 @@ public class ListCustomersQueryHandler {
         // Execute query
         Page<CustomerEntity> page;
         if (query.getStatus() != null || (query.getSearchTerm() != null && !query.getSearchTerm().isBlank())) {
-            CustomerStatus status = query.getStatus();
+            String status = query.getStatus() != null ? query.getStatus().name() : null;
             String searchTerm = query.getSearchTerm() != null && !query.getSearchTerm().isBlank() 
                 ? query.getSearchTerm() 
                 : null;
-            page = jpaRepository.findByStatusAndSearchTerm(status, searchTerm, pageable);
+            // Fetch all matching results (unsorted) to get total count
+            Pageable unsortedPageable = PageRequest.of(0, Integer.MAX_VALUE);
+            Page<CustomerEntity> allResults = jpaRepository.findByStatusAndSearchTerm(status, searchTerm, unsortedPageable);
+            
+            // Apply sorting manually
+            List<CustomerEntity> sortedContent = allResults.getContent();
+            if (sort.isSorted()) {
+                sortedContent = sortedContent.stream()
+                    .sorted((a, b) -> {
+                        for (Sort.Order order : sort) {
+                            int comparison = 0;
+                            switch (order.getProperty()) {
+                                case "lastName":
+                                    comparison = a.getLastName().compareToIgnoreCase(b.getLastName());
+                                    break;
+                                case "firstName":
+                                    comparison = a.getFirstName().compareToIgnoreCase(b.getFirstName());
+                                    break;
+                                case "email":
+                                    comparison = a.getEmail().compareToIgnoreCase(b.getEmail());
+                                    break;
+                                case "createdAt":
+                                    comparison = a.getCreatedAt().compareTo(b.getCreatedAt());
+                                    break;
+                            }
+                            if (comparison != 0) {
+                                return order.isAscending() ? comparison : -comparison;
+                            }
+                        }
+                        return 0;
+                    })
+                    .collect(Collectors.toList());
+            }
+            
+            // Apply pagination
+            int start = pageNumber * pageSize;
+            int end = Math.min(start + pageSize, sortedContent.size());
+            List<CustomerEntity> pagedContent = start < sortedContent.size() 
+                ? sortedContent.subList(start, end)
+                : List.of();
+            
+            // Create a new Page with paginated and sorted content
+            page = new PageImpl<>(pagedContent, pageable, allResults.getTotalElements());
         } else {
             page = jpaRepository.findAll(pageable);
         }

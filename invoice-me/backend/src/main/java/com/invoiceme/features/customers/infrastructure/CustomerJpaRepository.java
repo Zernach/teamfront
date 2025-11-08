@@ -18,13 +18,21 @@ public interface CustomerJpaRepository extends JpaRepository<CustomerEntity, UUI
     
     Page<CustomerEntity> findByStatus(CustomerStatus status, Pageable pageable);
     
-    @Query("SELECT c FROM CustomerEntity c WHERE " +
-           "(:status IS NULL OR c.status = :status) AND " +
-           "(:searchTerm IS NULL OR LOWER(c.firstName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(c.email) LIKE LOWER(CONCAT('%', :searchTerm, '%')))")
+    @Query(value = "SELECT * FROM customers c WHERE " +
+           "(:status IS NULL OR c.status = CAST(:status AS VARCHAR)) AND " +
+           "(:searchTerm IS NULL OR " +
+           "LOWER(c.first_name) LIKE '%' || LOWER(CAST(:searchTerm AS VARCHAR)) || '%' OR " +
+           "LOWER(c.last_name) LIKE '%' || LOWER(CAST(:searchTerm AS VARCHAR)) || '%' OR " +
+           "LOWER(c.email) LIKE '%' || LOWER(CAST(:searchTerm AS VARCHAR)) || '%')",
+           nativeQuery = true,
+           countQuery = "SELECT COUNT(*) FROM customers c WHERE " +
+           "(:status IS NULL OR c.status = CAST(:status AS VARCHAR)) AND " +
+           "(:searchTerm IS NULL OR " +
+           "LOWER(c.first_name) LIKE '%' || LOWER(CAST(:searchTerm AS VARCHAR)) || '%' OR " +
+           "LOWER(c.last_name) LIKE '%' || LOWER(CAST(:searchTerm AS VARCHAR)) || '%' OR " +
+           "LOWER(c.email) LIKE '%' || LOWER(CAST(:searchTerm AS VARCHAR)) || '%')")
     Page<CustomerEntity> findByStatusAndSearchTerm(
-        @Param("status") CustomerStatus status,
+        @Param("status") String status,
         @Param("searchTerm") String searchTerm,
         Pageable pageable
     );

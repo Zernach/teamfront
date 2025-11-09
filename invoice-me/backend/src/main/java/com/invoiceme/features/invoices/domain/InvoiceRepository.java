@@ -8,3 +8,4 @@ public interface InvoiceRepository {
     Optional<Invoice> findById(UUID id);
 }
 
+

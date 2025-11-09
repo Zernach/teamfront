@@ -166,3 +166,4 @@ Then press:
 - The UI follows a consistent design system with colors and spacing constants
 - TypeScript is used throughout for type safety
 
+

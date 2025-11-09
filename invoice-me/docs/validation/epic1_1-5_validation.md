@@ -259,3 +259,4 @@ If issues are found:
 - `backend/src/main/java/com/invoiceme/features/customers/dto/PagedCustomerListDto.java`
 - `backend/src/test/java/com/invoiceme/features/customers/api/CustomerControllerIntegrationTest.java`
 
+

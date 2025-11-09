@@ -162,3 +162,4 @@ If issues are discovered:
 - Deleted customers cannot be updated (verified in tests)
 - When Epic 2 is implemented, invoice existence check will be connected to InvoiceRepository
 
+

@@ -304,3 +304,4 @@ If issues are found:
 - `backend/src/main/java/com/invoiceme/features/invoices/api/InvoiceController.java` (added PUT endpoint)
 - `backend/src/test/java/com/invoiceme/features/invoices/api/InvoiceControllerIntegrationTest.java` (added update tests)
 
+

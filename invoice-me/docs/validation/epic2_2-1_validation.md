@@ -428,3 +428,4 @@ If issues are found:
 - `backend/src/main/java/com/invoiceme/features/invoices/api/InvoiceController.java`
 - `backend/src/test/java/com/invoiceme/features/invoices/api/InvoiceControllerIntegrationTest.java`
 
+

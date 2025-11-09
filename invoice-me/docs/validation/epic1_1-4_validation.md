@@ -156,3 +156,4 @@ If issues are discovered:
 - Account summary fields return zeros/defaults until invoices are implemented
 - When Epic 2 is implemented, AccountSummaryCalculator will query InvoiceRepository to calculate real values
 
+

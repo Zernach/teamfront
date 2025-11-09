@@ -5,3 +5,5 @@ node_modules/
 dist/
 .expo
 install-state.gz
+ios
+android

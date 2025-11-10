@@ -12,7 +12,7 @@ export default function Index() {
       <View style={styles.content}>
         <Text style={styles.title}>Rapid Photo Upload</Text>
         <Text style={styles.subtitle}>Upload and manage your photos</Text>
-        
+
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.button}
@@ -21,7 +21,7 @@ export default function Index() {
           >
             <Text style={styles.buttonText}>Upload Photos</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.button, styles.buttonSecondary]}
             onPress={() => router.push('/gallery')}

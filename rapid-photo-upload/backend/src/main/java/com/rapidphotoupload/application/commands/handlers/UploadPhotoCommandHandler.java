@@ -2,20 +2,91 @@ package com.rapidphotoupload.application.commands.handlers;
 
 import com.rapidphotoupload.application.commands.CommandResult;
 import com.rapidphotoupload.application.commands.UploadPhotoCommand;
+import com.rapidphotoupload.application.commands.handlers.CommandHandler;
+import com.rapidphotoupload.domain.aggregates.Photo;
+import com.rapidphotoupload.domain.aggregates.UploadJob;
+import com.rapidphotoupload.domain.aggregates.User;
+import com.rapidphotoupload.domain.repositories.PhotoRepository;
+import com.rapidphotoupload.domain.repositories.UploadJobRepository;
+import com.rapidphotoupload.domain.repositories.UserRepository;
 import com.rapidphotoupload.domain.valueobjects.PhotoId;
+import com.rapidphotoupload.domain.valueobjects.UploadedBy;
+import com.rapidphotoupload.infrastructure.exceptions.ValidationException;
+import org.springframework.stereotype.Component;
 
 /**
  * Handler for UploadPhotoCommand.
- * Implementation will be completed in Epic 3.
+ * Creates Photo aggregate and validates storage quota.
+ * Actual file upload to cloud storage is handled asynchronously.
  */
+@Component
 public class UploadPhotoCommandHandler implements CommandHandler<UploadPhotoCommand, PhotoId> {
+    
+    private final PhotoRepository photoRepository;
+    private final UserRepository userRepository;
+    private final UploadJobRepository uploadJobRepository;
+    
+    public UploadPhotoCommandHandler(
+            PhotoRepository photoRepository,
+            UserRepository userRepository,
+            UploadJobRepository uploadJobRepository) {
+        this.photoRepository = photoRepository;
+        this.userRepository = userRepository;
+        this.uploadJobRepository = uploadJobRepository;
+    }
+    
     @Override
     public CommandResult<PhotoId> handle(UploadPhotoCommand command) {
-        // TODO: Implement in Epic 3 - Upload API
-        // This will create a Photo aggregate, validate storage quota, and initiate upload
-        throw new UnsupportedOperationException("UploadPhotoCommandHandler not yet implemented");
+        // Get user and validate quota
+        User user = userRepository.findById(command.userId())
+                .orElseThrow(() -> new ValidationException("User not found"));
+        
+        if (!user.canUpload(command.fileSize().getValue())) {
+            throw new ValidationException("Storage quota exceeded");
+        }
+        
+        // Validate job if provided
+        PhotoId photoId = PhotoId.generate();
+        
+        if (command.jobId() != null) {
+            UploadJob job = uploadJobRepository.findById(command.jobId())
+                    .orElseThrow(() -> new ValidationException("Upload job not found"));
+            
+            // Verify job belongs to user
+            if (!job.getUserId().equals(command.userId())) {
+                throw new ValidationException("Upload job does not belong to user");
+            }
+            
+            // Add photo to job
+            job.addPhoto(photoId);
+            uploadJobRepository.save(job);
+            // Domain events are published by infrastructure when getDomainEvents() is called
+            job.getDomainEvents();
+        }
+        
+        // Create photo aggregate
+        UploadedBy uploadedBy = UploadedBy.from(command.userId().getValue());
+        
+        Photo photo = Photo.create(
+            photoId,
+            command.filename(),
+            command.fileSize(),
+            command.contentType(),
+            uploadedBy
+        );
+        
+        // Add tags if provided (would need TagRepository)
+        // For now, tags are handled separately
+        
+        // Save photo
+        photoRepository.save(photo);
+        
+        // Domain events are published by infrastructure when getDomainEvents() is called
+        photo.getDomainEvents();
+        
+        return CommandResult.success(photoId);
     }
-
+    
     @Override
     public Class<UploadPhotoCommand> getCommandType() {
         return UploadPhotoCommand.class;

@@ -16,9 +16,20 @@ export function formatFileSize(bytes: number): string {
 /**
  * Format date to relative time (e.g., "2 hours ago")
  */
-export function formatRelativeTime(date: string | Date): string {
+export function formatRelativeTime(date: string | Date | null | undefined): string {
+  // Handle null/undefined dates
+  if (!date) {
+    return 'Unknown date';
+  }
+  
   const now = new Date();
   const then = typeof date === 'string' ? new Date(date) : date;
+  
+  // Check if the date is valid
+  if (!(then instanceof Date) || isNaN(then.getTime())) {
+    return 'Invalid date';
+  }
+  
   const diffInSeconds = Math.floor((now.getTime() - then.getTime()) / 1000);
   
   if (diffInSeconds < 60) return 'just now';

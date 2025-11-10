@@ -1,5 +1,6 @@
 import React, { Component, ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { COLORS } from '../constants/colors';
 
 interface Props {
   children: ReactNode;
@@ -55,16 +56,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: COLORS.background,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: COLORS.white,
   },
   message: {
     fontSize: 16,
     textAlign: 'center',
-    color: '#666',
+    color: COLORS.grey,
   },
 });
 

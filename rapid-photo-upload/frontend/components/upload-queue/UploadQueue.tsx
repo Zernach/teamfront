@@ -39,12 +39,12 @@ export function UploadQueue() {
         if (data.photoId && data.progress !== undefined) {
           dispatch(updateProgress({ id: data.photoId, progress: data.progress }));
         }
-        
+
         // Mark completed photos
         if (data.photoId && data.status === 'completed') {
           dispatch(markCompleted({ id: data.photoId }));
         }
-        
+
         // Mark failed photos
         if (data.photoId && data.status === 'failed') {
           dispatch(markFailed({ id: data.photoId, error: data.error || 'Upload failed' }));
@@ -99,7 +99,7 @@ export function UploadQueue() {
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Upload Queue ({queue.length})</Text>
       {queue.map((item) => (
-        <View key={item.id} style={styles.queueItem}>
+        <View key={item?.id} style={styles.queueItem}>
           <View style={styles.queueItemHeader}>
             <Text style={styles.fileName} numberOfLines={1}>
               {item.file.name}
@@ -113,7 +113,7 @@ export function UploadQueue() {
               <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
             </View>
           </View>
-          
+
           {item.status === 'uploading' && (
             <View style={styles.progressContainer}>
               <View style={styles.progressBar}>
@@ -127,11 +127,11 @@ export function UploadQueue() {
               <Text style={styles.progressText}>{item.progress}%</Text>
             </View>
           )}
-          
+
           {item.status === 'failed' && item.error && (
             <Text style={styles.errorText}>{item.error}</Text>
           )}
-          
+
           <Text style={styles.fileSize}>{formatFileSize(item.file.size)}</Text>
         </View>
       ))}
@@ -143,12 +143,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    backgroundColor: COLORS.background,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
+    backgroundColor: COLORS.background,
   },
   emptyText: {
     fontSize: 16,
@@ -187,7 +189,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   statusText: {
-    color: COLORS.black,
+    color: COLORS.white,
     fontSize: 12,
     fontWeight: '600',
   },

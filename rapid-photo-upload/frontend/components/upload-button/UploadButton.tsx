@@ -53,28 +53,28 @@ export function UploadButton() {
           // Find the queue item by matching file name or ID
           const queueItem = queue.find((item: QueueItem) => {
             // Try to match by photoId if we have a mapping, or by filename
-            return item.file.name === data.filename || item.id === data.photoId;
+            return item.file.name === data.filename || item?.id === data.photoId;
           });
-          
+
           if (queueItem) {
             dispatch(updateProgress({ id: queueItem.id, progress: data.progress! }));
           }
         }
-        
+
         // Mark completed photos
         if (data.photoId && data.status === 'completed') {
-          const queueItem = queue.find((item: QueueItem) => 
-            item.file.name === data.filename || item.id === data.photoId
+          const queueItem = queue.find((item: QueueItem) =>
+            item.file.name === data.filename || item?.id === data.photoId
           );
           if (queueItem) {
             dispatch(markCompleted({ id: queueItem.id }));
           }
         }
-        
+
         // Mark failed photos
         if (data.photoId && data.status === 'failed') {
-          const queueItem = queue.find((item: QueueItem) => 
-            item.file.name === data.filename || item.id === data.photoId
+          const queueItem = queue.find((item: QueueItem) =>
+            item.file.name === data.filename || item?.id === data.photoId
           );
           if (queueItem) {
             dispatch(markFailed({ id: queueItem.id, error: data.error || 'Upload failed' }));
@@ -98,9 +98,9 @@ export function UploadButton() {
 
     try {
       const files = queuedFiles.map((item) => item.file);
-      
+
       const result = await uploadBatch.mutateAsync(files);
-      
+
       // Set active job ID for WebSocket updates
       if (result.jobId) {
         dispatch(setActiveJobId({ jobId: result.jobId }));
@@ -109,19 +109,19 @@ export function UploadButton() {
       // If the API doesn't return a jobId, we'll need to handle progress differently
       // For now, mark all as uploading
       queuedFiles.forEach((item: QueueItem) => {
-        dispatch(updateProgress({ id: item.id, progress: 0 }));
+        dispatch(updateProgress({ id: item?.id, progress: 0 }));
       });
     } catch (error: unknown) {
       console.error('Upload error:', error);
-      const errorMessage = error instanceof Error 
-        ? error.message 
+      const errorMessage = error instanceof Error
+        ? error.message
         : (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to start upload';
-      
+
       Alert.alert('Upload Failed', errorMessage);
-      
+
       // Mark all queued files as failed
       queuedFiles.forEach((item: QueueItem) => {
-        dispatch(markFailed({ id: item.id, error: 'Failed to start upload' }));
+        dispatch(markFailed({ id: item?.id, error: 'Failed to start upload' }));
       });
     }
   }, [hasQueuedFiles, queuedFiles, uploadBatch, dispatch]);
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: COLORS.black,
+    color: COLORS.white,
     fontSize: 18,
     fontWeight: '600',
   },

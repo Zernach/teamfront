@@ -19,10 +19,12 @@ export function PhotoGrid({ onPhotoPress }: PhotoGridProps) {
     refetch,
   } = usePhotosInfinite(20);
 
-  // Flatten paginated data
+  // Flatten paginated data and filter out null/undefined items
   const photos = useMemo(() => {
     if (!data?.pages) return [];
-    return data.pages.flatMap((page) => page.photos);
+    return data.pages
+      .flatMap((page) => page.photos || [])
+      .filter((photo): photo is Photo => photo != null && photo.id != null);
   }, [data]);
 
   const handleLoadMore = useCallback(() => {
@@ -36,32 +38,39 @@ export function PhotoGrid({ onPhotoPress }: PhotoGridProps) {
   }, [refetch]);
 
   const renderPhoto = useCallback(
-    ({ item }: { item: Photo }) => (
-      <TouchableOpacity
-        style={styles.photoCard}
-        onPress={() => onPhotoPress?.(item)}
-        activeOpacity={0.8}
-      >
-        <Image
-          source={{ uri: item.thumbnailStorageKey || item.storageKey }}
-          style={styles.photoImage}
-          resizeMode="cover"
-        />
-        <View style={styles.photoOverlay}>
-          <Text style={styles.photoFilename} numberOfLines={1}>
-            {item.filename}
-          </Text>
-          <Text style={styles.photoDate}>
-            {formatRelativeTime(item.uploadedAt)}
-          </Text>
-        </View>
-        {item.status !== 'COMPLETED' && (
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{item.status}</Text>
+    ({ item }: { item: Photo }) => {
+      // Additional safety check (shouldn't be needed due to filtering, but defensive)
+      if (!item || !item.id) {
+        return null;
+      }
+      
+      return (
+        <TouchableOpacity
+          style={styles.photoCard}
+          onPress={() => onPhotoPress?.(item)}
+          activeOpacity={0.8}
+        >
+          <Image
+            source={{ uri: item.thumbnailStorageKey || item.storageKey }}
+            style={styles.photoImage}
+            resizeMode="cover"
+          />
+          <View style={styles.photoOverlay}>
+            <Text style={styles.photoFilename} numberOfLines={1}>
+              {item.filename || 'Untitled'}
+            </Text>
+            <Text style={styles.photoDate}>
+              {formatRelativeTime(item.uploadedAt)}
+            </Text>
           </View>
-        )}
-      </TouchableOpacity>
-    ),
+          {item.status && item.status !== 'COMPLETED' && (
+            <View style={styles.statusBadge}>
+              <Text style={styles.statusText}>{item.status}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      );
+    },
     [onPhotoPress]
   );
 
@@ -100,6 +109,7 @@ export function PhotoGrid({ onPhotoPress }: PhotoGridProps) {
       keyExtractor={(item) => item.id}
       numColumns={3}
       contentContainerStyle={styles.grid}
+      style={styles.list}
       onEndReached={handleLoadMore}
       onEndReachedThreshold={0.5}
       ListFooterComponent={renderFooter}
@@ -112,8 +122,12 @@ export function PhotoGrid({ onPhotoPress }: PhotoGridProps) {
 }
 
 const styles = StyleSheet.create({
+  list: {
+    backgroundColor: COLORS.background,
+  },
   grid: {
     padding: 8,
+    backgroundColor: COLORS.background,
   },
   row: {
     justifyContent: 'space-between',
@@ -169,6 +183,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
+    backgroundColor: COLORS.background,
   },
   loadingText: {
     fontSize: 16,
@@ -179,6 +194,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
+    backgroundColor: COLORS.background,
   },
   emptyText: {
     fontSize: 18,

@@ -53,6 +53,13 @@ export const COLORS = {
     linkedin: '#0077B5',
     black: '#000000',
     transparent: 'transparent',
+    // Text colors for dark theme
+    textPrimary: '#F0F0F0',
+    textSecondary: '#909090',
+    // Additional semantic colors
+    success: '#72fa41',
+    warning: '#fbff00',
+    error: '#e52c2c',
 };
 
 export const DEFAULT_BORDER_COLOR = COLORS.tan50;

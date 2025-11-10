@@ -29,28 +29,28 @@ const uploadSlice = createSlice({
       });
     },
     updateProgress: (state, action: PayloadAction<{ id: string; progress: number }>) => {
-      const item = state.queue.find((item) => item.id === action.payload.id);
+      const item = state.queue.find((item) => item?.id === action.payload.id);
       if (item) {
         item.progress = action.payload.progress;
         item.status = 'uploading';
       }
     },
     markCompleted: (state, action: PayloadAction<{ id: string }>) => {
-      const item = state.queue.find((item) => item.id === action.payload.id);
+      const item = state.queue.find((item) => item?.id === action.payload.id);
       if (item) {
         item.status = 'completed';
         item.progress = 100;
       }
     },
     markFailed: (state, action: PayloadAction<{ id: string; error: string }>) => {
-      const item = state.queue.find((item) => item.id === action.payload.id);
+      const item = state.queue.find((item) => item?.id === action.payload.id);
       if (item) {
         item.status = 'failed';
         item.error = action.payload.error;
       }
     },
     removeFromQueue: (state, action: PayloadAction<{ id: string }>) => {
-      state.queue = state.queue.filter((item) => item.id !== action.payload.id);
+      state.queue = state.queue.filter((item) => item?.id !== action.payload.id);
     },
     setActiveJobId: (state, action: PayloadAction<{ jobId: string | null }>) => {
       state.activeJobId = action.payload.jobId;

@@ -8,7 +8,7 @@ import { CustomButton } from 'components/custom-button';
 import { COLORS } from 'constants/colors';
 import { contractorService } from 'services/contractorService';
 import { Contractor, ContractorType, ContractorStatus } from 'services/types/contractor';
-import { PADDING } from 'constants/styles/commonStyles';
+import { PADDING_SIZES } from 'constants/styles/commonStyles';
 import { Feather } from '@expo/vector-icons';
 import { Screen } from 'components/screen';
 
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.black,
   },
   content: {
-    padding: PADDING.md,
+    padding: PADDING_SIZES.md,
   },
   center: {
     flex: 1,
@@ -208,35 +208,35 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: PADDING.lg,
+    marginBottom: PADDING_SIZES.lg,
   },
   backButton: {
-    marginRight: PADDING.md,
+    marginRight: PADDING_SIZES.md,
   },
   title: {
     flex: 1,
   },
   details: {
-    gap: PADDING.md,
+    gap: PADDING_SIZES.md,
   },
   detailRow: {
     flexDirection: 'row',
-    marginBottom: PADDING.sm,
+    marginBottom: PADDING_SIZES.sm,
   },
   label: {
     fontWeight: 'bold',
-    marginRight: PADDING.sm,
+    marginRight: PADDING_SIZES.sm,
     minWidth: 100,
   },
   value: {
     flex: 1,
   },
   footer: {
-    marginTop: PADDING.lg,
-    gap: PADDING.md,
+    marginTop: PADDING_SIZES.lg,
+    gap: PADDING_SIZES.md,
   },
   button: {
-    marginBottom: PADDING.sm,
+    marginBottom: PADDING_SIZES.sm,
   },
   dangerButton: {
     backgroundColor: COLORS.red || '#ff4444',

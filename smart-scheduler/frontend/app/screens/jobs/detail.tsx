@@ -67,6 +67,17 @@ export default function JobDetailScreen() {
     [JobType.Flooring]: 'Flooring',
     [JobType.Tile]: 'Tile',
     [JobType.Carpet]: 'Carpet',
+    [JobType.Hardwood]: 'Hardwood',
+    [JobType.Laminate]: 'Laminate',
+    [JobType.Vinyl]: 'Vinyl',
+    [JobType.Linoleum]: 'Linoleum',
+    [JobType.Bamboo]: 'Bamboo',
+    [JobType.Cork]: 'Cork',
+    [JobType.Concrete]: 'Concrete',
+    [JobType.Marble]: 'Marble',
+    [JobType.Granite]: 'Granite',
+    [JobType.Stone]: 'Stone',
+    [JobType.Other]: 'Other',
   };
 
   const statusLabels: Record<JobStatus, string> = {

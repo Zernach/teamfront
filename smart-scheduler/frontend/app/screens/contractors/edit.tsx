@@ -135,8 +135,8 @@ export default function EditContractorScreen() {
                     baseLocation: {
                       ...formData.baseLocation!,
                       address: text,
-                      latitude: formData.baseLocation?.latitude ?? 0,
-                      longitude: formData.baseLocation?.longitude ?? 0,
+                      latitude: formData.baseLocation?.latitude ?? contractor.baseLocation.latitude,
+                      longitude: formData.baseLocation?.longitude ?? contractor.baseLocation.longitude,
                     }
                   })}
                   style={styles.input}
@@ -151,11 +151,11 @@ export default function EditContractorScreen() {
                       baseLocation: {
                         ...formData.baseLocation!,
                         city: text,
-                        latitude: formData.baseLocation?.latitude ?? 0,
-                        longitude: formData.baseLocation?.longitude ?? 0,
+                        latitude: formData.baseLocation?.latitude ?? contractor.baseLocation.latitude,
+                        longitude: formData.baseLocation?.longitude ?? contractor.baseLocation.longitude,
                       }
                     })}
-                    style={styles.halfInput}
+                    style={StyleSheet.flatten([styles.input, styles.halfInput])}
                   />
 
                   <CustomTextInput
@@ -166,11 +166,11 @@ export default function EditContractorScreen() {
                       baseLocation: {
                         ...formData.baseLocation!,
                         state: text,
-                        latitude: formData.baseLocation?.latitude ?? 0,
-                        longitude: formData.baseLocation?.longitude ?? 0,
+                        latitude: formData.baseLocation?.latitude ?? contractor.baseLocation.latitude,
+                        longitude: formData.baseLocation?.longitude ?? contractor.baseLocation.longitude,
                       }
                     })}
-                    style={styles.halfInput}
+                    style={StyleSheet.flatten([styles.input, styles.halfInput])}
                     maxLength={2}
                   />
                 </View>
@@ -183,8 +183,8 @@ export default function EditContractorScreen() {
                     baseLocation: {
                       ...formData.baseLocation!,
                       zipCode: text,
-                      latitude: formData.baseLocation?.latitude ?? 0,
-                      longitude: formData.baseLocation?.longitude ?? 0,
+                      latitude: formData.baseLocation?.latitude ?? contractor.baseLocation.latitude,
+                      longitude: formData.baseLocation?.longitude ?? contractor.baseLocation.longitude,
                     }
                   })}
                   style={styles.input}

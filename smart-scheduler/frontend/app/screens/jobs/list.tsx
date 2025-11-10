@@ -57,6 +57,17 @@ export default function JobListScreen() {
     [JobType.Flooring]: 'Flooring',
     [JobType.Tile]: 'Tile',
     [JobType.Carpet]: 'Carpet',
+    [JobType.Hardwood]: 'Hardwood',
+    [JobType.Laminate]: 'Laminate',
+    [JobType.Vinyl]: 'Vinyl',
+    [JobType.Linoleum]: 'Linoleum',
+    [JobType.Bamboo]: 'Bamboo',
+    [JobType.Cork]: 'Cork',
+    [JobType.Concrete]: 'Concrete',
+    [JobType.Marble]: 'Marble',
+    [JobType.Granite]: 'Granite',
+    [JobType.Stone]: 'Stone',
+    [JobType.Other]: 'Other',
   };
 
   const statusLabels: Record<JobStatus, string> = {
@@ -90,7 +101,7 @@ export default function JobListScreen() {
             <View style={styles.jobHeader}>
               <CustomText style={styles.jobNumber}>{item.jobNumber}</CustomText>
               <View style={[styles.statusBadge, { backgroundColor: statusColors[item.status] }]}>
-                <CustomText style={[styles.statusText, item.status === JobStatus.Open && styles.statusTextOpen]}>
+                <CustomText style={[styles.statusText, item.status === JobStatus.Open ? styles.statusTextOpen : {}]}>
                   {statusLabels[item.status]}
                 </CustomText>
               </View>

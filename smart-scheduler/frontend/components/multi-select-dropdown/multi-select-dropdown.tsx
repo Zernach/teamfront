@@ -69,7 +69,7 @@ export const MultiSelectDropdown = ({
         <CustomText
           style={[
             styles.dropdownText,
-            selectedValues.length === 0 && styles.placeholderText,
+            selectedValues.length === 0 ? styles.placeholderText : {},
           ]}
         >
           {getDisplayText()}

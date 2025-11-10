@@ -9,7 +9,7 @@ import { CustomCard } from 'components/custom-card/custom-card';
 import { COLORS } from 'constants/colors';
 import { contractorService } from 'services/contractorService';
 import { UpdateContractorRequest, Contractor, ContractorType } from 'services/types/contractor';
-import { PADDING } from 'constants/styles/commonStyles';
+import { PADDING_SIZES } from 'constants/styles/commonStyles';
 import { Screen } from 'components/screen';
 
 export default function EditContractorScreen() {
@@ -105,14 +105,14 @@ export default function EditContractorScreen() {
             <View style={styles.form}>
               <CustomTextInput
                 placeholder="Name"
-                value={formData.name || ''}
+                initialValue={formData.name || ''}
                 onChangeText={(text) => setFormData({ ...formData, name: text })}
                 style={styles.input}
               />
               
               <CustomTextInput
                 placeholder="Email"
-                value={formData.email || ''}
+                initialValue={formData.email || ''}
                 onChangeText={(text) => setFormData({ ...formData, email: text })}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -121,7 +121,7 @@ export default function EditContractorScreen() {
               
               <CustomTextInput
                 placeholder="Phone Number"
-                value={formData.phoneNumber || ''}
+                initialValue={formData.phoneNumber || ''}
                 onChangeText={(text) => setFormData({ ...formData, phoneNumber: text })}
                 keyboardType="phone-pad"
                 style={styles.input}
@@ -129,10 +129,17 @@ export default function EditContractorScreen() {
 
               <CustomTextInput
                 placeholder="Address"
-                value={formData.baseLocation.address}
+                initialValue={formData.baseLocation.address}
                 onChangeText={(text) => setFormData({ 
                   ...formData, 
-                  baseLocation: { ...formData.baseLocation, address: text }
+                  baseLocation: { 
+                    address: text,
+                    city: formData.baseLocation?.city ?? contractor.baseLocation.city,
+                    state: formData.baseLocation?.state ?? contractor.baseLocation.state,
+                    zipCode: formData.baseLocation?.zipCode ?? contractor.baseLocation.zipCode,
+                    latitude: formData.baseLocation?.latitude ?? contractor.baseLocation.latitude,
+                    longitude: formData.baseLocation?.longitude ?? contractor.baseLocation.longitude,
+                  }
                 })}
                 style={styles.input}
               />
@@ -140,32 +147,53 @@ export default function EditContractorScreen() {
               <View style={styles.row}>
                 <CustomTextInput
                   placeholder="City"
-                  value={formData.baseLocation.city}
+                  initialValue={formData.baseLocation.city}
                   onChangeText={(text) => setFormData({ 
                     ...formData, 
-                    baseLocation: { ...formData.baseLocation, city: text }
+                    baseLocation: { 
+                      address: formData.baseLocation?.address ?? contractor.baseLocation.address,
+                      city: text,
+                      state: formData.baseLocation?.state ?? contractor.baseLocation.state,
+                      zipCode: formData.baseLocation?.zipCode ?? contractor.baseLocation.zipCode,
+                      latitude: formData.baseLocation?.latitude ?? contractor.baseLocation.latitude,
+                      longitude: formData.baseLocation?.longitude ?? contractor.baseLocation.longitude,
+                    }
                   })}
-                  style={[styles.input, styles.halfInput]}
+                  style={StyleSheet.flatten([styles.input, styles.halfInput])}
                 />
                 
                 <CustomTextInput
                   placeholder="State"
-                  value={formData.baseLocation.state}
+                  initialValue={formData.baseLocation.state}
                   onChangeText={(text) => setFormData({ 
                     ...formData, 
-                    baseLocation: { ...formData.baseLocation, state: text }
+                    baseLocation: { 
+                      address: formData.baseLocation?.address ?? contractor.baseLocation.address,
+                      city: formData.baseLocation?.city ?? contractor.baseLocation.city,
+                      state: text,
+                      zipCode: formData.baseLocation?.zipCode ?? contractor.baseLocation.zipCode,
+                      latitude: formData.baseLocation?.latitude ?? contractor.baseLocation.latitude,
+                      longitude: formData.baseLocation?.longitude ?? contractor.baseLocation.longitude,
+                    }
                   })}
-                  style={[styles.input, styles.halfInput]}
+                  style={StyleSheet.flatten([styles.input, styles.halfInput])}
                   maxLength={2}
                 />
               </View>
 
               <CustomTextInput
                 placeholder="Zip Code"
-                value={formData.baseLocation.zipCode}
+                initialValue={formData.baseLocation.zipCode}
                 onChangeText={(text) => setFormData({ 
                   ...formData, 
-                  baseLocation: { ...formData.baseLocation, zipCode: text }
+                  baseLocation: { 
+                    address: formData.baseLocation?.address ?? contractor.baseLocation.address,
+                    city: formData.baseLocation?.city ?? contractor.baseLocation.city,
+                    state: formData.baseLocation?.state ?? contractor.baseLocation.state,
+                    zipCode: text,
+                    latitude: formData.baseLocation?.latitude ?? contractor.baseLocation.latitude,
+                    longitude: formData.baseLocation?.longitude ?? contractor.baseLocation.longitude,
+                  }
                 })}
                 style={styles.input}
               />
@@ -192,7 +220,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.black,
   },
   content: {
-    padding: PADDING.md,
+    padding: PADDING_SIZES.md,
   },
   center: {
     flex: 1,
@@ -201,23 +229,23 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.black,
   },
   title: {
-    marginBottom: PADDING.lg,
+    marginBottom: PADDING_SIZES.lg,
   },
   form: {
-    gap: PADDING.md,
+    gap: PADDING_SIZES.md,
   },
   input: {
-    marginBottom: PADDING.sm,
+    marginBottom: PADDING_SIZES.sm,
   },
   row: {
     flexDirection: 'row',
-    gap: PADDING.sm,
+    gap: PADDING_SIZES.sm,
   },
   halfInput: {
     flex: 1,
   },
   footer: {
-    marginTop: PADDING.lg,
+    marginTop: PADDING_SIZES.lg,
   },
 });
 

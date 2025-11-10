@@ -7,7 +7,7 @@ import { CustomButton } from 'components/custom-button';
 import { CustomCard } from 'components/custom-card/custom-card';
 import { COLORS } from 'constants/colors';
 import { recommendationService, RecommendationResponse, RankedContractor, TimeSlot } from 'services/recommendationService';
-import { PADDING } from 'constants/styles/commonStyles';
+import { PADDING_SIZES } from 'constants/styles/commonStyles';
 import { Screen } from 'components/screen';
 import { LoadingSpinner } from 'components/loading-spinner/loading-spinner';
 import { BackButton } from 'components/back-button/back-button';
@@ -72,7 +72,7 @@ export default function RecommendationsScreen() {
   if (loading) {
     return (
       <Screen>
-        <LoadingSpinner />
+        <LoadingSpinner animating={true} />
       </Screen>
     );
   }
@@ -92,7 +92,7 @@ export default function RecommendationsScreen() {
     <Screen>
       <BackButton />
       <ScrollView style={styles.container}>
-        <CustomTitle>Recommendations for {recommendations.jobDetails.jobNumber}</CustomTitle>
+        <CustomTitle title={`Recommendations for ${recommendations.jobDetails.jobNumber}`} />
         <CustomText style={styles.jobInfo}>
           {recommendations.jobDetails.location.address}, {recommendations.jobDetails.location.city}
         </CustomText>
@@ -101,98 +101,107 @@ export default function RecommendationsScreen() {
         </CustomText>
 
         {recommendations.recommendations.map((contractor) => (
-          <CustomCard key={contractor.contractor.id} style={styles.contractorCard}>
-            <View style={styles.contractorHeader}>
-              <View>
-                <CustomText style={styles.rank}>#{contractor.rank}</CustomText>
-                <CustomText style={styles.contractorName}>{contractor.contractor.name}</CustomText>
-                <CustomText style={styles.contractorInfo}>
-                  ⭐ {contractor.contractor.rating} • 📍 {contractor.distanceFromJob?.toFixed(1)} miles
+          <CustomCard 
+            key={contractor.contractor.id} 
+            renderHeader={<View />}
+            renderMiddle={
+            <View style={styles.contractorCard}>
+              <View style={styles.contractorHeader}>
+                <View>
+                  <CustomText style={styles.rank}>#{contractor.rank}</CustomText>
+                  <CustomText style={styles.contractorName}>{contractor.contractor.name}</CustomText>
+                  <CustomText style={styles.contractorInfo}>
+                    ⭐ {contractor.contractor.rating} • 📍 {contractor.distanceFromJob?.toFixed(1)} miles
+                  </CustomText>
+                </View>
+                <View style={styles.scoreContainer}>
+                  <CustomText style={styles.scoreLabel}>Score</CustomText>
+                  <CustomText style={styles.scoreValue}>{(contractor.score * 100)?.toFixed(0)}%</CustomText>
+                </View>
+              </View>
+
+              <View style={styles.scoreBreakdown}>
+                <CustomText style={styles.breakdownLabel}>Score Breakdown:</CustomText>
+                <View style={styles.breakdownBar}>
+                  <View
+                    style={[
+                      styles.breakdownSegment,
+                      {
+                        width: `${contractor.scoreBreakdown.availabilityScore * 100}%`,
+                        backgroundColor: COLORS.primary,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.breakdownSegment,
+                      {
+                        width: `${contractor.scoreBreakdown.ratingScore * 100}%`,
+                        backgroundColor: COLORS.success,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.breakdownSegment,
+                      {
+                        width: `${contractor.scoreBreakdown.distanceScore * 100}%`,
+                        backgroundColor: COLORS.warning,
+                      },
+                    ]}
+                  />
+                </View>
+                <CustomText style={styles.breakdownText}>
+                  Availability: {(contractor.scoreBreakdown.availabilityScore * 100)?.toFixed(0)}% •
+                  Rating: {(contractor.scoreBreakdown.ratingScore * 100)?.toFixed(0)}% •
+                  Distance: {(contractor.scoreBreakdown.distanceScore * 100)?.toFixed(0)}%
                 </CustomText>
               </View>
-              <View style={styles.scoreContainer}>
-                <CustomText style={styles.scoreLabel}>Score</CustomText>
-                <CustomText style={styles.scoreValue}>{(contractor.score * 100)?.toFixed(0)}%</CustomText>
-              </View>
-            </View>
 
-            <View style={styles.scoreBreakdown}>
-              <CustomText style={styles.breakdownLabel}>Score Breakdown:</CustomText>
-              <View style={styles.breakdownBar}>
-                <View
-                  style={[
-                    styles.breakdownSegment,
-                    {
-                      width: `${contractor.scoreBreakdown.availabilityScore * 100}%`,
-                      backgroundColor: COLORS.primary,
-                    },
-                  ]}
-                />
-                <View
-                  style={[
-                    styles.breakdownSegment,
-                    {
-                      width: `${contractor.scoreBreakdown.ratingScore * 100}%`,
-                      backgroundColor: COLORS.success,
-                    },
-                  ]}
-                />
-                <View
-                  style={[
-                    styles.breakdownSegment,
-                    {
-                      width: `${contractor.scoreBreakdown.distanceScore * 100}%`,
-                      backgroundColor: COLORS.warning,
-                    },
-                  ]}
-                />
-              </View>
-              <CustomText style={styles.breakdownText}>
-                Availability: {(contractor.scoreBreakdown.availabilityScore * 100)?.toFixed(0)}% •
-                Rating: {(contractor.scoreBreakdown.ratingScore * 100)?.toFixed(0)}% •
-                Distance: {(contractor.scoreBreakdown.distanceScore * 100)?.toFixed(0)}%
-              </CustomText>
-            </View>
-
-            <View style={styles.timeSlots}>
-              <CustomText style={styles.timeSlotsLabel}>Available Time Slots:</CustomText>
-              {contractor.availableTimeSlots.map((slot, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.timeSlotButton,
-                    selectedContractor?.contractor.id === contractor.contractor.id &&
-                    selectedTimeSlot?.startTime === slot.startTime &&
-                    styles.timeSlotButtonSelected,
-                  ]}
-                  onPress={() => {
-                    setSelectedContractor(contractor);
-                    setSelectedTimeSlot(slot);
-                  }}
-                >
-                  <CustomText
+              <View style={styles.timeSlots}>
+                <CustomText style={styles.timeSlotsLabel}>Available Time Slots:</CustomText>
+                {contractor.availableTimeSlots.map((slot, index) => (
+                  <TouchableOpacity
+                    key={index}
                     style={[
-                      styles.timeSlotText,
+                      styles.timeSlotButton,
                       selectedContractor?.contractor.id === contractor.contractor.id &&
-                      selectedTimeSlot?.startTime === slot.startTime &&
-                      styles.timeSlotTextSelected,
+                      selectedTimeSlot?.startTime === slot.startTime
+                        ? styles.timeSlotButtonSelected
+                        : undefined,
                     ]}
+                    onPress={() => {
+                      setSelectedContractor(contractor);
+                      setSelectedTimeSlot(slot);
+                    }}
                   >
-                    {formatDate(slot.startTime)} - {formatDate(slot.endTime)}
-                  </CustomText>
-                </TouchableOpacity>
-              ))}
+                    <CustomText
+                      style={[
+                        styles.timeSlotText,
+                        selectedContractor?.contractor.id === contractor.contractor.id &&
+                        selectedTimeSlot?.startTime === slot.startTime
+                          ? styles.timeSlotTextSelected
+                          : {},
+                      ]}
+                    >
+                      {formatDate(slot.startTime)} - {formatDate(slot.endTime)}
+                    </CustomText>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-
-            {selectedContractor?.contractor.id === contractor.contractor.id && (
-              <CustomButton
-                title="Assign to This Contractor"
-                onPress={handleAssign}
-                disabled={assigning || !selectedTimeSlot}
-                style={styles.assignButton}
-              />
-            )}
-          </CustomCard>
+            }
+            renderFooter={
+              selectedContractor?.contractor.id === contractor.contractor.id ? (
+                <CustomButton
+                  title="Assign to This Contractor"
+                  onPress={handleAssign}
+                  disabled={assigning || !selectedTimeSlot}
+                  style={styles.assignButton}
+                />
+              ) : <View />
+            }
+          />
         ))}
       </ScrollView>
     </Screen>
@@ -202,21 +211,21 @@ export default function RecommendationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: PADDING.md,
+    padding: PADDING_SIZES.md,
   },
   jobInfo: {
     fontSize: 14,
     color: COLORS.textSecondary,
-    marginBottom: PADDING.sm,
+    marginBottom: PADDING_SIZES.sm,
   },
   contractorCard: {
-    marginBottom: PADDING.md,
-    padding: PADDING.md,
+    marginBottom: PADDING_SIZES.md,
+    padding: PADDING_SIZES.md,
   },
   contractorHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: PADDING.md,
+    marginBottom: PADDING_SIZES.md,
   },
   rank: {
     fontSize: 24,
@@ -227,12 +236,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: COLORS.textPrimary,
-    marginTop: PADDING.xs,
+    marginTop: PADDING_SIZES.xs,
   },
   contractorInfo: {
     fontSize: 14,
     color: COLORS.textSecondary,
-    marginTop: PADDING.xs,
+    marginTop: PADDING_SIZES.xs,
   },
   scoreContainer: {
     alignItems: 'center',
@@ -247,20 +256,20 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   scoreBreakdown: {
-    marginBottom: PADDING.md,
+    marginBottom: PADDING_SIZES.md,
   },
   breakdownLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.textSecondary,
-    marginBottom: PADDING.xs,
+    marginBottom: PADDING_SIZES.xs,
   },
   breakdownBar: {
     flexDirection: 'row',
     height: 8,
     borderRadius: 4,
     overflow: 'hidden',
-    marginBottom: PADDING.xs,
+    marginBottom: PADDING_SIZES.xs,
   },
   breakdownSegment: {
     height: '100%',
@@ -270,20 +279,20 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   timeSlots: {
-    marginBottom: PADDING.md,
+    marginBottom: PADDING_SIZES.md,
   },
   timeSlotsLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.textSecondary,
-    marginBottom: PADDING.xs,
+    marginBottom: PADDING_SIZES.xs,
   },
   timeSlotButton: {
-    padding: PADDING.sm,
+    padding: PADDING_SIZES.sm,
     borderRadius: 4,
     borderWidth: 1,
     borderColor: COLORS.tan50,
-    marginBottom: PADDING.xs,
+    marginBottom: PADDING_SIZES.xs,
   },
   timeSlotButtonSelected: {
     borderColor: COLORS.primary,
@@ -298,7 +307,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   assignButton: {
-    marginTop: PADDING.md,
+    marginTop: PADDING_SIZES.md,
   },
 });
 

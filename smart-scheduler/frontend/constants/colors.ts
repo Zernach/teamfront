@@ -58,6 +58,8 @@ export const COLORS = {
     error: '#e52c2c',
     textPrimary: '#F0F0F0',
     textSecondary: '#909090',
+    blue: '#007AFF',
+    gray: '#999999',
 };
 
 export const DEFAULT_BORDER_COLOR = COLORS.tan50;

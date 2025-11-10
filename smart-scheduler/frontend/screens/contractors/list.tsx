@@ -9,7 +9,7 @@ import { CustomButton } from 'components/custom-button';
 import { COLORS } from 'constants/colors';
 import { contractorService } from 'services/contractorService';
 import { ContractorListItem, ContractorType, PagedResult } from 'services/types/contractor';
-import { PADDING } from 'constants/styles/commonStyles';
+import { PADDING_SIZES } from 'constants/styles/commonStyles';
 import { Feather } from '@expo/vector-icons';
 import { Screen } from 'components/screen';
 
@@ -100,7 +100,7 @@ export default function ContractorListScreen() {
       <View style={styles.searchContainer}>
         <CustomTextInput
           placeholder="Search by name..."
-          value={searchName}
+          initialValue={searchName}
           onChangeText={setSearchName}
           style={styles.searchInput}
         />
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: PADDING.md,
+    padding: PADDING_SIZES.md,
   },
   title: {
     flex: 1,
@@ -172,15 +172,15 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     flexDirection: 'row',
-    padding: PADDING.md,
+    padding: PADDING_SIZES.md,
     alignItems: 'center',
   },
   searchInput: {
     flex: 1,
   },
   clearButton: {
-    marginLeft: PADDING.sm,
-    padding: PADDING.xs,
+    marginLeft: PADDING_SIZES.sm,
+    padding: PADDING_SIZES.xs,
   },
   center: {
     flex: 1,
@@ -188,17 +188,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   list: {
-    padding: PADDING.md,
-    gap: PADDING.md,
+    padding: PADDING_SIZES.md,
+    gap: PADDING_SIZES.md,
   },
   contractorCard: {
-    padding: PADDING.sm,
+    padding: PADDING_SIZES.sm,
   },
   contractorHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: PADDING.xs,
+    marginBottom: PADDING_SIZES.xs,
   },
   contractorName: {
     fontSize: 18,
@@ -206,9 +206,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   badge: {
-    backgroundColor: COLORS.blue || '#007AFF',
-    paddingHorizontal: PADDING.sm,
-    paddingVertical: PADDING.xs,
+    backgroundColor: COLORS.blue,
+    paddingHorizontal: PADDING_SIZES.sm,
+    paddingVertical: PADDING_SIZES.xs,
     borderRadius: 4,
   },
   badgeText: {
@@ -216,22 +216,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   contractorInfo: {
-    marginBottom: PADDING.xs,
-    color: COLORS.gray || '#999',
+    marginBottom: PADDING_SIZES.xs,
+    color: COLORS.gray,
   },
   contractorFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: PADDING.xs,
+    marginTop: PADDING_SIZES.xs,
   },
   location: {
-    color: COLORS.gray || '#999',
+    color: COLORS.gray,
   },
   rating: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: PADDING.xs,
+    gap: PADDING_SIZES.xs,
   },
   ratingText: {
     color: COLORS.white,
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: PADDING.md,
+    padding: PADDING_SIZES.md,
   },
   paginationButton: {
     minWidth: 80,

@@ -1,5 +1,12 @@
 import { Platform } from 'react-native';
 
+// Type declaration for window in web environment
+declare global {
+  interface Window {
+    localStorage: Storage;
+  }
+}
+
 /**
  * Storage utility for cross-platform token storage.
  * Uses localStorage on web, AsyncStorage on native.

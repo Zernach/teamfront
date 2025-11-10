@@ -15,6 +15,17 @@ export const Colors = {
   textSecondary: '#909090',
   border: '#404040',
   divider: '#353535',
+  // Additional colors used by components
+  primary80: '#72fa41CC',
+  primary08: '#72fa4114',
+  lightBrown: '#8B7355',
+  lightBrown50: '#8B735580',
+  darkBrown: '#5C4A37',
+  black: '#000000',
+  grey: '#808080',
+  lightGrey: '#C0C0C0',
+  red: '#FF3B30',
+  transparent: 'transparent',
 };
 
 // Export uppercase version for compatibility with existing components

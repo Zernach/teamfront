@@ -1,7 +1,6 @@
 // app/index.tsx
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Text } from 'react-native';
 import { Colors } from '../constants/colors';
 import { Spacing } from '../constants/spacing';
@@ -10,9 +9,9 @@ import { CustomList } from '../components/custom-list/custom-list';
 import { useAppSelector, useAppDispatch } from '../hooks/redux';
 import { clearAuth } from '../store/authSlice';
 import { authApi } from '../services/api/authApi';
+import { router } from 'expo-router';
 
 export default function HomeScreen() {
-  const router = useRouter();
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
@@ -22,12 +21,8 @@ export default function HomeScreen() {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear auth state
+      // Clear auth state - AuthGuard will automatically redirect to /auth/login
       dispatch(clearAuth());
-      // Navigate after state update completes
-      setTimeout(() => {
-        router.push('/auth/login');
-      }, 0);
     }
   };
 

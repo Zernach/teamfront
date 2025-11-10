@@ -124,7 +124,7 @@ export default function RecordPaymentScreen() {
     return (
       <Screen style={styles.screen}>
         <View style={styles.center}>
-          <Text style={styles.text}>Invoice not found</Text>
+          <Text style={styles.textContent}>Invoice not found</Text>
         </View>
       </Screen>
     );
@@ -150,10 +150,10 @@ export default function RecordPaymentScreen() {
         <View style={styles.content}>
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Invoice Information</Text>
-            <Text style={styles.text}>
+            <Text style={styles.textContent}>
               Invoice: {invoice.invoiceNumber || 'DRAFT'}
             </Text>
-            <Text style={styles.text}>Customer: {invoice.customer?.fullName || 'Unknown'}</Text>
+            <Text style={styles.textContent}>Customer: {invoice.customer?.fullName || 'Unknown'}</Text>
             <Text style={styles.balanceLabel}>Balance Due:</Text>
             <Text style={styles.balanceAmount}>{formatCurrency(invoice.balance)}</Text>
           </View>
@@ -245,9 +245,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  text: {
-    color: Colors.text,
-  },
   center: {
     flex: 1,
     justifyContent: 'center',
@@ -293,7 +290,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
     marginBottom: Spacing.md,
   },
-  text: {
+  textContent: {
     fontSize: 16,
     color: Colors.text,
     marginBottom: Spacing.xs,

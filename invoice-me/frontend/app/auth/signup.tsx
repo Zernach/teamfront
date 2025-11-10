@@ -6,11 +6,14 @@ import { CustomTextInput } from '../../components/custom-text-input/CustomTextIn
 import { CustomButton } from '../../components/custom-button';
 import { CustomText } from '../../components/custom-text/CustomText';
 import { authApi, RegisterRequest } from '../../services/api/authApi';
+import { useAppDispatch } from '../../hooks/redux';
+import { setAuth } from '../../store/authSlice';
 import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/spacing';
 
 export default function SignupScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -75,10 +78,34 @@ export default function SignupScreen() {
         fullName: fullName.trim(),
       };
 
+      // Register the user
       await authApi.register(registerData);
 
-      // Navigate to login after successful registration
-      router.replace('/auth/login');
+      // Automatically log in the user after successful registration
+      const loginResponse = await authApi.login({
+        email: email.trim(),
+        password,
+      });
+
+      // Dispatch auth action to set authentication state
+      dispatch(setAuth({
+        user: {
+          id: loginResponse.user.id,
+          email: loginResponse.user.email,
+          fullName: loginResponse.user.fullName,
+          role: loginResponse.user.role,
+        },
+        token: loginResponse.accessToken,
+      }));
+
+      // Store refresh token
+      if (loginResponse.refreshToken) {
+        const { tokenStorage } = await import('../../services/tokenStorage');
+        tokenStorage.setRefreshToken(loginResponse.refreshToken).catch(console.error);
+      }
+
+      // Navigate to home page after successful registration and login
+      router.replace('/');
     } catch (error: any) {
       const errorMessage = error?.message || 'Registration failed. Please try again.';
       setGeneralError(errorMessage);

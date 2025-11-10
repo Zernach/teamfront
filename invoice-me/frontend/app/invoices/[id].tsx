@@ -64,7 +64,7 @@ export default function InvoiceDetailScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Confirm',
-          onPress: async (reason) => {
+          onPress: async (reason: string | undefined) => {
             if (!reason) {
               Alert.alert('Error', 'Cancellation reason is required');
               return;

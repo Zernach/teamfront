@@ -7,3 +7,7 @@ dist/
 install-state.gz
 ios
 android
+
+# JAR files (build artifacts) - ignore all JARs except those in target directories
+**/*.jar
+!**/target/**/*.jar

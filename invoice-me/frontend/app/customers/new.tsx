@@ -15,6 +15,7 @@ import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/spacing';
 import { Text } from 'react-native';
 import { Screen } from '../../components/screen';
+import { usePhoneNumber } from '../../hooks/usePhoneNumber';
 
 export default function CreateCustomerScreen() {
   const router = useRouter();
@@ -29,166 +30,267 @@ export default function CreateCustomerScreen() {
     state: '',
     zipCode: '',
     country: '',
-    taxId: '',
+  });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const phoneNumber = usePhoneNumber({
+    initialValue: formData.phone,
+    onChange: (value) => {
+      setFormData((prev) => ({ ...prev, phone: value }));
+    },
+    onBlur: (value) => {
+      setFormData((prev) => ({ ...prev, phone: value }));
+    },
   });
 
+  const clearFieldError = (fieldName: string) => {
+    if (fieldErrors[fieldName]) {
+      const newErrors = { ...fieldErrors };
+      delete newErrors[fieldName];
+      setFieldErrors(newErrors);
+    }
+  };
+
+  const handleFieldChange = (fieldName: keyof CreateCustomerRequest, value: string) => {
+    setFormData({ ...formData, [fieldName]: value });
+    clearFieldError(fieldName);
+
+    // Update phone number E.164 value when formData changes
+    if (fieldName === 'phone') {
+      phoneNumber.setValue(value);
+    }
+  };
+
   const handleSubmit = async () => {
+    // Clear previous errors
+    setFieldErrors({});
+
+    // Ensure phone number is in E.164 format before submission
+    const finalPhoneValue = phoneNumber.e164Value;
+    const submitData = { ...formData, phone: finalPhoneValue };
+
     // Basic validation
-    if (!formData.firstName || !formData.lastName || !formData.email) {
+    if (!submitData.firstName || !submitData.lastName || !submitData.email) {
       Alert.alert('Validation Error', 'Please fill in all required fields');
+      return;
+    }
+
+    // Validate phone number if provided
+    if (finalPhoneValue && !phoneNumber.isValid) {
+      setFieldErrors({ phone: 'Please enter a valid phone number in E.164 format (e.g., +1234567890)' });
       return;
     }
 
     try {
       setLoading(true);
-      await customerApi.createCustomer(formData);
+      await customerApi.createCustomer(submitData);
       router.back();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to create customer');
+      // Handle validation errors from backend
+      if (error.errors && typeof error.errors === 'object') {
+        const validationErrors: Record<string, string> = {};
+        Object.entries(error.errors).forEach(([key, value]) => {
+          if (Array.isArray(value) && value.length > 0) {
+            validationErrors[key] = value[0];
+          } else if (typeof value === 'string') {
+            validationErrors[key] = value;
+          }
+        });
+        setFieldErrors(validationErrors);
+      } else {
+        Alert.alert('Error', error.message || 'Failed to create customer');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Screen>
+    <Screen style={styles.screen}>
       <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.cancelButton}>Cancel</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Customer</Text>
-        <TouchableOpacity onPress={handleSubmit} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color={Colors.primary} />
-          ) : (
-            <Text style={styles.saveButton}>Save</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.form}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Personal Information</Text>
-          <Text style={styles.label}>First Name *</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.firstName}
-            onChangeText={(text) =>
-              setFormData({ ...formData, firstName: text })
-            }
-            placeholder="First Name"
-            placeholderTextColor={Colors.textSecondary}
-          />
-
-          <Text style={styles.label}>Last Name *</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.lastName}
-            onChangeText={(text) =>
-              setFormData({ ...formData, lastName: text })
-            }
-            placeholder="Last Name"
-            placeholderTextColor={Colors.textSecondary}
-          />
-
-          <Text style={styles.label}>Email Address *</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.email}
-            onChangeText={(text) => setFormData({ ...formData, email: text })}
-            placeholder="email@example.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            placeholderTextColor={Colors.textSecondary}
-          />
-
-          <Text style={styles.label}>Phone Number</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.phone}
-            onChangeText={(text) => setFormData({ ...formData, phone: text })}
-            placeholder="+1-555-123-4567"
-            keyboardType="phone-pad"
-            placeholderTextColor={Colors.textSecondary}
-          />
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.cancelButton}>Cancel</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>New Customer</Text>
+          <TouchableOpacity onPress={handleSubmit} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color={Colors.primary} />
+            ) : (
+              <Text style={styles.saveButton}>Save</Text>
+            )}
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Billing Address</Text>
-          <Text style={styles.label}>Street Address *</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.street}
-            onChangeText={(text) => setFormData({ ...formData, street: text })}
-            placeholder="123 Main St"
-            placeholderTextColor={Colors.textSecondary}
-          />
+        <View style={styles.form}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Personal Information</Text>
+            <Text style={styles.label}>First Name *</Text>
+            <TextInput
+              style={[
+                styles.input,
+                fieldErrors.firstName && styles.inputError,
+              ]}
+              value={formData.firstName}
+              onChangeText={(text) => handleFieldChange('firstName', text)}
+              placeholder="First Name"
+              placeholderTextColor={Colors.textSecondary}
+            />
+            {fieldErrors.firstName && (
+              <Text style={styles.errorText}>{fieldErrors.firstName}</Text>
+            )}
 
-          <Text style={styles.label}>City *</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.city}
-            onChangeText={(text) => setFormData({ ...formData, city: text })}
-            placeholder="City"
-            placeholderTextColor={Colors.textSecondary}
-          />
+            <Text style={styles.label}>Last Name *</Text>
+            <TextInput
+              style={[
+                styles.input,
+                fieldErrors.lastName && styles.inputError,
+              ]}
+              value={formData.lastName}
+              onChangeText={(text) => handleFieldChange('lastName', text)}
+              placeholder="Last Name"
+              placeholderTextColor={Colors.textSecondary}
+            />
+            {fieldErrors.lastName && (
+              <Text style={styles.errorText}>{fieldErrors.lastName}</Text>
+            )}
 
-          <View style={styles.row}>
-            <View style={styles.halfWidth}>
-              <Text style={styles.label}>State *</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.state}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, state: text })
-                }
-                placeholder="State"
-                placeholderTextColor={Colors.textSecondary}
-              />
-            </View>
-            <View style={styles.halfWidth}>
-              <Text style={styles.label}>Zip Code *</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.zipCode}
-                onChangeText={(text) =>
-                  setFormData({ ...formData, zipCode: text })
-                }
-                placeholder="12345"
-                keyboardType="numeric"
-                placeholderTextColor={Colors.textSecondary}
-              />
-            </View>
+            <Text style={styles.label}>Email Address *</Text>
+            <TextInput
+              style={[
+                styles.input,
+                fieldErrors.email && styles.inputError,
+              ]}
+              value={formData.email}
+              onChangeText={(text) => handleFieldChange('email', text)}
+              placeholder="email@example.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor={Colors.textSecondary}
+            />
+            {fieldErrors.email && (
+              <Text style={styles.errorText}>{fieldErrors.email}</Text>
+            )}
+
+            <Text style={styles.label}>Phone Number</Text>
+            <TextInput
+              style={[
+                styles.input,
+                fieldErrors.phone && styles.inputError,
+              ]}
+              value={phoneNumber.value}
+              onChangeText={(text) => {
+                phoneNumber.onChangeText(text);
+                clearFieldError('phone');
+              }}
+              onBlur={phoneNumber.onBlur}
+              placeholder="+1234567890"
+              keyboardType="phone-pad"
+              placeholderTextColor={Colors.textSecondary}
+            />
+            {fieldErrors.phone && (
+              <Text style={styles.errorText}>{fieldErrors.phone}</Text>
+            )}
+            {phoneNumber.value && !phoneNumber.isValid && (
+              <Text style={styles.errorText}>
+                Please enter a valid phone number in E.164 format (e.g., +1234567890)
+              </Text>
+            )}
           </View>
 
-          <Text style={styles.label}>Country *</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.country}
-            onChangeText={(text) =>
-              setFormData({ ...formData, country: text })
-            }
-            placeholder="Country"
-            placeholderTextColor={Colors.textSecondary}
-          />
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Billing Address</Text>
+            <Text style={styles.label}>Street Address *</Text>
+            <TextInput
+              style={[
+                styles.input,
+                fieldErrors.street && styles.inputError,
+              ]}
+              value={formData.street}
+              onChangeText={(text) => handleFieldChange('street', text)}
+              placeholder="123 Main St"
+              placeholderTextColor={Colors.textSecondary}
+            />
+            {fieldErrors.street && (
+              <Text style={styles.errorText}>{fieldErrors.street}</Text>
+            )}
 
-          <Text style={styles.label}>Tax ID</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.taxId}
-            onChangeText={(text) => setFormData({ ...formData, taxId: text })}
-            placeholder="XX-XXXXXXX"
-            placeholderTextColor={Colors.textSecondary}
-          />
+            <Text style={styles.label}>City *</Text>
+            <TextInput
+              style={[
+                styles.input,
+                fieldErrors.city && styles.inputError,
+              ]}
+              value={formData.city}
+              onChangeText={(text) => handleFieldChange('city', text)}
+              placeholder="City"
+              placeholderTextColor={Colors.textSecondary}
+            />
+            {fieldErrors.city && (
+              <Text style={styles.errorText}>{fieldErrors.city}</Text>
+            )}
+
+            <View style={styles.row}>
+              <View style={styles.halfWidth}>
+                <Text style={styles.label}>State *</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    fieldErrors.state && styles.inputError,
+                  ]}
+                  value={formData.state}
+                  onChangeText={(text) => handleFieldChange('state', text)}
+                  placeholder="State"
+                  placeholderTextColor={Colors.textSecondary}
+                />
+                {fieldErrors.state && (
+                  <Text style={styles.errorText}>{fieldErrors.state}</Text>
+                )}
+              </View>
+              <View style={styles.halfWidth}>
+                <Text style={styles.label}>Zip Code *</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    fieldErrors.zipCode && styles.inputError,
+                  ]}
+                  value={formData.zipCode}
+                  onChangeText={(text) => handleFieldChange('zipCode', text)}
+                  placeholder="12345"
+                  keyboardType="numeric"
+                  placeholderTextColor={Colors.textSecondary}
+                />
+                {fieldErrors.zipCode && (
+                  <Text style={styles.errorText}>{fieldErrors.zipCode}</Text>
+                )}
+              </View>
+            </View>
+
+            <Text style={styles.label}>Country *</Text>
+            <TextInput
+              style={[
+                styles.input,
+                fieldErrors.country && styles.inputError,
+              ]}
+              value={formData.country}
+              onChangeText={(text) => handleFieldChange('country', text)}
+              placeholder="Country"
+              placeholderTextColor={Colors.textSecondary}
+            />
+            {fieldErrors.country && (
+              <Text style={styles.errorText}>{fieldErrors.country}</Text>
+            )}
+          </View>
         </View>
-      </View>
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    backgroundColor: Colors.background,
+  },
   container: {
     backgroundColor: Colors.background,
   },
@@ -253,6 +355,16 @@ const styles = StyleSheet.create({
   },
   halfWidth: {
     flex: 1,
+  },
+  inputError: {
+    borderColor: Colors.error,
+    borderWidth: 2,
+  },
+  errorText: {
+    color: Colors.error,
+    fontSize: 12,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.xs,
   },
 });
 

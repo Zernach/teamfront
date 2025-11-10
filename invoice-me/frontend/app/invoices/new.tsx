@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { invoiceApi, CreateInvoiceRequest } from '../../services/api/invoiceApi';
 import { customerApi } from '../../services/api/customerApi';
 import { Colors } from '../../constants/colors';
@@ -47,6 +48,15 @@ export default function CreateInvoiceScreen() {
       loadCustomers();
     }
   }, []);
+
+  // Reload customers when screen comes into focus (e.g., after creating a customer)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!customerId) {
+        loadCustomers();
+      }
+    }, [customerId])
+  );
 
   const loadCustomers = async () => {
     try {
@@ -112,7 +122,7 @@ export default function CreateInvoiceScreen() {
   };
 
   return (
-    <Screen>
+    <Screen style={{ backgroundColor: Colors.background }}>
       <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -134,6 +144,20 @@ export default function CreateInvoiceScreen() {
             <Text style={styles.label}>Customer *</Text>
             {loadingCustomers ? (
               <ActivityIndicator />
+            ) : customers.length === 0 ? (
+              <View style={styles.emptyCustomerState}>
+                <Text style={styles.emptyCustomerText}>
+                  No customers found. Create your first customer to get started.
+                </Text>
+                <TouchableOpacity
+                  style={styles.createCustomerButton}
+                  onPress={() => router.push('/customers/new')}
+                >
+                  <Text style={styles.createCustomerButtonText}>
+                    Create Customer
+                  </Text>
+                </TouchableOpacity>
+              </View>
             ) : (
               <View style={styles.customerList}>
                 {customers.map((customer) => (
@@ -386,6 +410,29 @@ const styles = StyleSheet.create({
   removeButtonText: {
     color: Colors.error,
     fontSize: 14,
+  },
+  emptyCustomerState: {
+    padding: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyCustomerText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  createCustomerButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: 8,
+    marginTop: Spacing.sm,
+  },
+  createCustomerButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

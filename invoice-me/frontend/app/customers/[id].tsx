@@ -65,7 +65,7 @@ export default function CustomerDetailScreen() {
 
   if (loading) {
     return (
-      <Screen>
+      <Screen style={styles.screen}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
@@ -78,97 +78,94 @@ export default function CustomerDetailScreen() {
   }
 
   return (
-    <Screen>
+    <Screen style={styles.screen}>
       <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButton}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Customer</Text>
-        <TouchableOpacity onPress={() => router.push(`/customers/${id}/edit`)}>
-          <Text style={styles.editButton}>Edit</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.content}>
-        <View style={styles.section}>
-          <Text style={styles.name}>{customer.fullName}</Text>
-          <Text style={styles.email}>{customer.email}</Text>
-          {customer.phone && (
-            <Text style={styles.phone}>{customer.phone}</Text>
-          )}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Billing Address</Text>
-          <Text style={styles.address}>
-            {customer.street}
-            {'\n'}
-            {customer.city}, {customer.state} {customer.zipCode}
-            {'\n'}
-            {customer.country}
-          </Text>
-          {customer.taxId && (
-            <>
-              <Text style={styles.label}>Tax ID</Text>
-              <Text style={styles.value}>{customer.taxId}</Text>
-            </>
-          )}
-          <Text style={styles.label}>Status</Text>
-          <Text style={styles.value}>{customer.status}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Summary</Text>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Total Invoiced</Text>
-            <Text style={styles.summaryValue}>
-              ${customer.totalInvoiced.toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Total Paid</Text>
-            <Text style={styles.summaryValue}>
-              ${customer.totalPaid.toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Outstanding</Text>
-            <Text style={[styles.summaryValue, styles.outstanding]}>
-              ${customer.outstandingBalance.toFixed(2)}
-            </Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Active Invoices</Text>
-            <Text style={styles.summaryValue}>
-              {customer.activeInvoicesCount}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push(`/invoices/new?customerId=${id}`)}
-          >
-            <Text style={styles.actionButtonText}>Create Invoice</Text>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.deleteButton]}
-            onPress={handleDelete}
-          >
-            <Text style={[styles.actionButtonText, styles.deleteButtonText]}>
-              Delete Customer
-            </Text>
+          <Text style={styles.headerTitle}>Customer</Text>
+          <TouchableOpacity onPress={() => router.push(`/customers/${id}/edit`)}>
+            <Text style={styles.editButton}>Edit</Text>
           </TouchableOpacity>
         </View>
-      </View>
+
+        <View style={styles.content}>
+          <View style={styles.section}>
+            <Text style={styles.name}>{customer.fullName}</Text>
+            <Text style={styles.email}>{customer.email}</Text>
+            {customer.phone && (
+              <Text style={styles.phone}>{customer.phone}</Text>
+            )}
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Billing Address</Text>
+            <Text style={styles.address}>
+              {customer.street}
+              {'\n'}
+              {customer.city}, {customer.state} {customer.zipCode}
+              {'\n'}
+              {customer.country}
+            </Text>
+            <Text style={styles.label}>Status</Text>
+            <Text style={styles.value}>{customer.status}</Text>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Account Summary</Text>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Total Invoiced</Text>
+              <Text style={styles.summaryValue}>
+                ${customer.totalInvoiced?.toFixed(2)}
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Total Paid</Text>
+              <Text style={styles.summaryValue}>
+                ${customer.totalPaid?.toFixed(2)}
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Outstanding</Text>
+              <Text style={[styles.summaryValue, styles.outstanding]}>
+                ${customer.outstandingBalance?.toFixed(2)}
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Active Invoices</Text>
+              <Text style={styles.summaryValue}>
+                {customer.activeInvoicesCount}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => router.push(`/invoices/new?customerId=${id}`)}
+            >
+              <Text style={styles.actionButtonText}>Create Invoice</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.deleteButton]}
+              onPress={handleDelete}
+            >
+              <Text style={[styles.actionButtonText, styles.deleteButtonText]}>
+                Delete Customer
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    backgroundColor: Colors.background,
+  },
   container: {
     backgroundColor: Colors.background,
   },

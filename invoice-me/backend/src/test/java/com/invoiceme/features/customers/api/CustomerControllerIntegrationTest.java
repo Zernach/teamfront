@@ -70,14 +70,12 @@ class CustomerControllerIntegrationTest {
         request.setState("CA");
         request.setZipCode("90001");
         request.setCountry("USA");
-        request.setTaxId("US-1234567");
         
         mockMvc.perform(post("/api/v1/customers")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.phone").value("+1234567890"))
-                .andExpect(jsonPath("$.taxId").value("US-1234567"));
+                .andExpect(jsonPath("$.phone").value("+1234567890"));
     }
     
     @Test
@@ -165,26 +163,6 @@ class CustomerControllerIntegrationTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.phone").exists());
-    }
-    
-    @Test
-    void createCustomer_InvalidTaxIdFormat_BadRequest() throws Exception {
-        CreateCustomerRequestDto request = new CreateCustomerRequestDto();
-        request.setFirstName("John");
-        request.setLastName("Doe");
-        request.setEmail("john.doe@example.com");
-        request.setTaxId("INVALID"); // Invalid format
-        request.setStreet("123 Main St");
-        request.setCity("New York");
-        request.setState("NY");
-        request.setZipCode("10001");
-        request.setCountry("USA");
-        
-        mockMvc.perform(post("/api/v1/customers")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.taxId").exists());
     }
     
     @Test
@@ -439,7 +417,6 @@ class CustomerControllerIntegrationTest {
         createRequest.setState("NY");
         createRequest.setZipCode("10001");
         createRequest.setCountry("USA");
-        createRequest.setTaxId("US-1234567");
         
         String responseJson = mockMvc.perform(post("/api/v1/customers")
                 .contentType(MediaType.APPLICATION_JSON)

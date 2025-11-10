@@ -234,17 +234,17 @@ export function handleSummary(data) {
   const p99ApiDuration = data.metrics.api_duration.values['p(99)'];
   const errorRateValue = data.metrics.errors.values.rate;
 
-  console.log(`P95 request duration: ${p95Duration.toFixed(2)}ms`);
-  console.log(`P99 API duration: ${p99ApiDuration.toFixed(2)}ms`);
-  console.log(`Error rate: ${(errorRateValue * 100).toFixed(2)}%`);
+  console.log(`P95 request duration: ${p95Duration?.toFixed(2)}ms`);
+  console.log(`P99 API duration: ${p99ApiDuration?.toFixed(2)}ms`);
+  console.log(`Error rate: ${(errorRateValue * 100)?.toFixed(2)}%`);
 
   return {
     'summary.json': JSON.stringify(data),
     stdout: `
 Performance NFR Results:
-- P95 request duration: ${p95Duration < 500 ? '✅ PASS' : '❌ FAIL'} (${p95Duration.toFixed(2)}ms / 500ms threshold)
-- P99 API duration: ${p99ApiDuration < 1000 ? '✅ PASS' : '❌ FAIL'} (${p99ApiDuration.toFixed(2)}ms / 1000ms threshold)
-- Error rate: ${errorRateValue < 0.01 ? '✅ PASS' : '❌ FAIL'} (${(errorRateValue * 100).toFixed(2)}% / 1% threshold)
+- P95 request duration: ${p95Duration < 500 ? '✅ PASS' : '❌ FAIL'} (${p95Duration?.toFixed(2)}ms / 500ms threshold)
+- P99 API duration: ${p99ApiDuration < 1000 ? '✅ PASS' : '❌ FAIL'} (${p99ApiDuration?.toFixed(2)}ms / 1000ms threshold)
+- Error rate: ${errorRateValue < 0.01 ? '✅ PASS' : '❌ FAIL'} (${(errorRateValue * 100)?.toFixed(2)}% / 1% threshold)
     `,
   };
 }

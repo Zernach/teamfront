@@ -457,7 +457,7 @@ function aggregateResults() {
   console.log(`❌ Failed:      ${totalFailed}`);
   console.log(`⏭️  Skipped:     ${totalSkipped}`);
   console.log(`⚠️  Flaky:       ${totalFlaky}`);
-  console.log(`⏱️  Duration:    ${(summary.duration / 1000).toFixed(2)}s`);
+  console.log(`⏱️  Duration:    ${(summary.duration / 1000)?.toFixed(2)}s`);
   console.log('━'.repeat(50));
 
   return summary;
@@ -484,7 +484,7 @@ async function main() {
   // Aggregate results
   const summary = aggregateResults();
 
-  const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+  const totalTime = ((Date.now() - startTime) / 1000)?.toFixed(2);
   console.log(`\n⏱️  Total execution time: ${totalTime}s`);
 
   // Exit with failure if any tests failed

@@ -10,7 +10,6 @@ public class CustomerDetailDto {
     private String email;
     private String phone;
     private AddressDto billingAddress;
-    private String taxId;
     private String status;
     private int totalInvoicesCount;
     private BigDecimal totalInvoicedAmount;
@@ -57,14 +56,6 @@ public class CustomerDetailDto {
     
     public void setBillingAddress(AddressDto billingAddress) {
         this.billingAddress = billingAddress;
-    }
-    
-    public String getTaxId() {
-        return taxId;
-    }
-    
-    public void setTaxId(String taxId) {
-        this.taxId = taxId;
     }
     
     public String getStatus() {

@@ -217,5 +217,74 @@ public class Invoice {
         // For now, we'll update the lastModifiedAt and lastModifiedBy
         this.auditInfo = AuditInfo.update(this.auditInfo, sentBy);
     }
+
+    public void applyPayment(BigDecimal paymentAmount, String modifiedBy) {
+        if (this.status == InvoiceStatus.CANCELLED) {
+            throw new IllegalStateException("Cannot apply payment to cancelled invoice");
+        }
+
+        if (this.status != InvoiceStatus.SENT && this.status != InvoiceStatus.PAID) {
+            throw new IllegalStateException("Can only apply payment to SENT or PAID invoices. Current status: " + this.status);
+        }
+
+        if (paymentAmount == null || paymentAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Payment amount must be greater than zero");
+        }
+
+        if (paymentAmount.compareTo(this.balance) > 0) {
+            throw new IllegalArgumentException("Payment amount cannot exceed invoice balance");
+        }
+
+        // Apply payment
+        this.paidAmount = this.paidAmount.add(paymentAmount);
+        this.balance = this.totalAmount.subtract(this.paidAmount);
+
+        // Update status to PAID if balance reaches zero
+        if (this.balance.compareTo(BigDecimal.ZERO) == 0) {
+            this.status = InvoiceStatus.PAID;
+        }
+
+        // Update audit info
+        this.auditInfo = AuditInfo.update(this.auditInfo, modifiedBy);
+    }
+
+    public void reversePayment(BigDecimal paymentAmount, String modifiedBy) {
+        if (paymentAmount == null || paymentAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Payment amount must be greater than zero");
+        }
+
+        // Reverse payment
+        this.paidAmount = this.paidAmount.subtract(paymentAmount);
+        if (this.paidAmount.compareTo(BigDecimal.ZERO) < 0) {
+            this.paidAmount = BigDecimal.ZERO;
+        }
+
+        this.balance = this.totalAmount.subtract(this.paidAmount);
+
+        // If invoice was PAID and now has balance, change status back to SENT
+        if (this.status == InvoiceStatus.PAID && this.balance.compareTo(BigDecimal.ZERO) > 0) {
+            this.status = InvoiceStatus.SENT;
+        }
+
+        // Update audit info
+        this.auditInfo = AuditInfo.update(this.auditInfo, modifiedBy);
+    }
+
+    public void cancel(String cancellationReason, String cancelledBy) {
+        if (this.status == InvoiceStatus.PAID) {
+            throw new IllegalStateException("Cannot cancel PAID invoices");
+        }
+
+        if (this.status == InvoiceStatus.CANCELLED) {
+            throw new IllegalStateException("Invoice is already cancelled");
+        }
+
+        if (cancellationReason == null || cancellationReason.trim().isEmpty()) {
+            throw new IllegalArgumentException("Cancellation reason is required");
+        }
+
+        this.status = InvoiceStatus.CANCELLED;
+        this.auditInfo = AuditInfo.update(this.auditInfo, cancelledBy);
+    }
 }
 

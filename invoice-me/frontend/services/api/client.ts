@@ -40,7 +40,17 @@ class ApiClient {
             errorMessage = errorData.message;
           }
           if (errorData.errors) {
-            errors = errorData.errors;
+            // Convert Record<string, string> to Record<string, string[]>
+            // Backend sends Record<string, string>, but we expect Record<string, string[]>
+            const convertedErrors: Record<string, string[]> = {};
+            Object.entries(errorData.errors).forEach(([key, value]) => {
+              if (Array.isArray(value)) {
+                convertedErrors[key] = value;
+              } else {
+                convertedErrors[key] = [String(value)];
+              }
+            });
+            errors = convertedErrors;
           }
         } catch {
           // If response is not JSON, use default error message

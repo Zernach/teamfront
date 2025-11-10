@@ -51,7 +51,6 @@ public class GetCustomerByIdQueryHandler {
         addressDto.setCountry(customer.getBillingAddress().getCountry());
         dto.setBillingAddress(addressDto);
         
-        dto.setTaxId(customer.getTaxId().isEmpty() ? null : customer.getTaxId().getValue());
         dto.setStatus(customer.getStatus().name());
         dto.setCreatedAt(customer.getAuditInfo().getCreatedAt());
         dto.setLastModifiedAt(customer.getAuditInfo().getLastModifiedAt());

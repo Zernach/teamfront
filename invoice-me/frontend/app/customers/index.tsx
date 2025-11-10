@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { customerApi, CustomerSummary } from '../../services/api/customerApi';
 import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/spacing';
@@ -16,6 +17,7 @@ import { Screen } from '../../components/screen';
 
 export default function CustomerListScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const [customers, setCustomers] = useState<CustomerSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -83,7 +85,7 @@ export default function CustomerListScreen() {
           <View>
             <Text style={styles.label}>Outstanding</Text>
             <Text style={styles.amount}>
-              ${item.outstandingBalance.toFixed(2)}
+              ${item.outstandingBalance?.toFixed(2)}
             </Text>
           </View>
           <View>
@@ -98,6 +100,13 @@ export default function CustomerListScreen() {
   return (
     <Screen style={styles.container}>
       <View style={styles.header}>
+        {navigation.canGoBack() && (
+          <View style={styles.backButtonContainer}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Text style={styles.backButtonText}>← Back</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         <TextInput
           style={styles.searchInput}
           placeholder="Search customers..."
@@ -170,6 +179,16 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
+  },
+  backButtonContainer: {
+    marginBottom: Spacing.md,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: Colors.primary,
   },
   searchInput: {
     backgroundColor: Colors.background,

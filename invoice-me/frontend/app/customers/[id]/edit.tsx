@@ -19,6 +19,7 @@ import { Colors } from '../../../constants/colors';
 import { Spacing } from '../../../constants/spacing';
 import { Text } from 'react-native';
 import { Screen } from '../../../components/screen';
+import { usePhoneNumber } from '../../../hooks/usePhoneNumber';
 
 export default function EditCustomerScreen() {
   const router = useRouter();
@@ -27,19 +28,29 @@ export default function EditCustomerScreen() {
   const [saving, setSaving] = useState(false);
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
   const [formData, setFormData] = useState<UpdateCustomerRequest>({});
-
+  
   useEffect(() => {
     if (id) {
       loadCustomer();
     }
   }, [id]);
+  
+  const phoneNumber = usePhoneNumber({
+    initialValue: formData.phone,
+    onChange: (value) => {
+      setFormData((prev) => ({ ...prev, phone: value }));
+    },
+    onBlur: (value) => {
+      setFormData((prev) => ({ ...prev, phone: value }));
+    },
+  });
 
   const loadCustomer = async () => {
     try {
       setLoading(true);
       const data = await customerApi.getCustomerById(id!);
       setCustomer(data);
-      setFormData({
+      const initialFormData = {
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
@@ -49,8 +60,8 @@ export default function EditCustomerScreen() {
         state: data.state,
         zipCode: data.zipCode,
         country: data.country,
-        taxId: data.taxId,
-      });
+      };
+      setFormData(initialFormData);
     } catch (error) {
       Alert.alert('Error', 'Failed to load customer');
       router.back();
@@ -60,9 +71,19 @@ export default function EditCustomerScreen() {
   };
 
   const handleSubmit = async () => {
+    // Ensure phone number is in E.164 format before submission
+    const finalPhoneValue = phoneNumber.e164Value;
+    const submitData = { ...formData, phone: finalPhoneValue };
+    
+    // Validate phone number if provided
+    if (finalPhoneValue && !phoneNumber.isValid) {
+      Alert.alert('Validation Error', 'Please enter a valid phone number in E.164 format (e.g., +1234567890)');
+      return;
+    }
+    
     try {
       setSaving(true);
-      await customerApi.updateCustomer(id!, formData);
+      await customerApi.updateCustomer(id!, submitData);
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to update customer');
@@ -73,7 +94,7 @@ export default function EditCustomerScreen() {
 
   if (loading) {
     return (
-      <Screen>
+      <Screen style={styles.screen}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
@@ -82,7 +103,7 @@ export default function EditCustomerScreen() {
   }
 
   return (
-    <Screen>
+    <Screen style={styles.screen}>
       <ScrollView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -134,11 +155,18 @@ export default function EditCustomerScreen() {
           <Text style={styles.label}>Phone Number</Text>
           <TextInput
             style={styles.input}
-            value={formData.phone}
-            onChangeText={(text) => setFormData({ ...formData, phone: text })}
+            value={phoneNumber.value}
+            onChangeText={(text) => phoneNumber.onChangeText(text)}
+            onBlur={phoneNumber.onBlur}
+            placeholder="+1234567890"
             keyboardType="phone-pad"
             placeholderTextColor={Colors.textSecondary}
           />
+          {phoneNumber.value && !phoneNumber.isValid && (
+            <Text style={styles.errorText}>
+              Please enter a valid phone number in E.164 format (e.g., +1234567890)
+            </Text>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -194,14 +222,6 @@ export default function EditCustomerScreen() {
             }
             placeholderTextColor={Colors.textSecondary}
           />
-
-          <Text style={styles.label}>Tax ID</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.taxId}
-            onChangeText={(text) => setFormData({ ...formData, taxId: text })}
-            placeholderTextColor={Colors.textSecondary}
-          />
         </View>
       </View>
       </ScrollView>
@@ -210,6 +230,9 @@ export default function EditCustomerScreen() {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    backgroundColor: Colors.background,
+  },
   container: {
     backgroundColor: Colors.background,
   },
@@ -279,6 +302,12 @@ const styles = StyleSheet.create({
   },
   halfWidth: {
     flex: 1,
+  },
+  errorText: {
+    color: Colors.error,
+    fontSize: 12,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.xs,
   },
 });
 

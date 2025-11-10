@@ -3,6 +3,7 @@ package com.invoiceme.features.customers.infrastructure;
 import com.invoiceme.features.customers.domain.Customer;
 import com.invoiceme.features.customers.domain.CustomerRepository;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,7 +29,6 @@ public class CustomerRepositoryImpl implements CustomerRepository {
                 existing.setState(customer.getBillingAddress().getState());
                 existing.setZipCode(customer.getBillingAddress().getZipCode());
                 existing.setCountry(customer.getBillingAddress().getCountry());
-                existing.setTaxId(customer.getTaxId().isEmpty() ? null : customer.getTaxId().getValue());
                 existing.setStatus(customer.getStatus());
                 existing.setCreatedAt(customer.getAuditInfo().getCreatedAt());
                 existing.setLastModifiedAt(customer.getAuditInfo().getLastModifiedAt());
@@ -57,6 +57,13 @@ public class CustomerRepositoryImpl implements CustomerRepository {
     public Optional<Customer> findByEmail(String email) {
         return jpaRepository.findByEmail(email.toLowerCase())
             .map(CustomerEntity::toDomain);
+    }
+    
+    @Override
+    public List<Customer> findAll() {
+        return jpaRepository.findAll().stream()
+            .map(CustomerEntity::toDomain)
+            .collect(java.util.stream.Collectors.toList());
     }
 }
 

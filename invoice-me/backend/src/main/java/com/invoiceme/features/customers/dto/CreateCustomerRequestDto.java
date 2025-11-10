@@ -40,9 +40,6 @@ public class CreateCustomerRequestDto {
     @NotBlank(message = "Country is required")
     private String country;
     
-    @Pattern(regexp = "^[A-Z]{2}-\\d{7}$", message = "Tax ID must be in format XX-XXXXXXX")
-    private String taxId;
-    
     public String getFirstName() {
         return firstName;
     }
@@ -113,14 +110,6 @@ public class CreateCustomerRequestDto {
     
     public void setCountry(String country) {
         this.country = country;
-    }
-    
-    public String getTaxId() {
-        return taxId;
-    }
-    
-    public void setTaxId(String taxId) {
-        this.taxId = taxId;
     }
 }
 

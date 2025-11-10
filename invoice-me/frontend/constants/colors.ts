@@ -5,12 +5,14 @@ export const Colors = {
   success: '#34C759',
   warning: '#FF9500',
   error: '#FF3B30',
-  background: '#F2F2F7',
-  surface: '#FFFFFF',
-  text: '#000000',
-  textSecondary: '#8E8E93',
-  border: '#C6C6C8',
-  divider: '#E5E5EA',
+  background: '#1c1c1c',
+  surface: '#2c2c2c',
+  white: '#F0F0F0',
+  text: '#F0F0F0',
+  textPrimary: '#F0F0F0',
+  textSecondary: '#909090',
+  border: '#404040',
+  divider: '#353535',
 };
 
 // Export uppercase version for compatibility with existing components

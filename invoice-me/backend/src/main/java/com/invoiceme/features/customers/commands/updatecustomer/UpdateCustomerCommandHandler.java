@@ -82,15 +82,6 @@ public class UpdateCustomerCommandHandler {
             address = customer.getBillingAddress();
         }
         
-        TaxIdentifier taxId;
-        if (command.getTaxId() != null && !command.getTaxId().isBlank()) {
-            taxId = TaxIdentifier.of(command.getTaxId());
-        } else if (command.getTaxId() != null && command.getTaxId().isBlank()) {
-            taxId = TaxIdentifier.empty();
-        } else {
-            taxId = customer.getTaxId();
-        }
-        
         // Create updated customer with new audit info
         Customer updated = Customer.reconstruct(
             customer.getId(),
@@ -98,7 +89,6 @@ public class UpdateCustomerCommandHandler {
             email,
             phone,
             address,
-            taxId,
             customer.getStatus(),
             AuditInfo.update(customer.getAuditInfo(), command.getModifiedBy())
         );

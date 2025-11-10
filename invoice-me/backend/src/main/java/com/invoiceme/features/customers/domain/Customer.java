@@ -9,7 +9,6 @@ public class Customer {
     private EmailAddress email;
     private PhoneNumber phone;
     private Address billingAddress;
-    private TaxIdentifier taxId;
     private CustomerStatus status;
     private AuditInfo auditInfo;
     
@@ -19,31 +18,29 @@ public class Customer {
     
     // Package-private constructor for reconstruction from entity
     Customer(UUID id, CustomerName name, EmailAddress email, PhoneNumber phone,
-                    Address billingAddress, TaxIdentifier taxId, CustomerStatus status, AuditInfo auditInfo) {
+                    Address billingAddress, CustomerStatus status, AuditInfo auditInfo) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.phone = phone;
         this.billingAddress = billingAddress;
-        this.taxId = taxId;
         this.status = status;
         this.auditInfo = auditInfo;
     }
     
     public static Customer reconstruct(UUID id, CustomerName name, EmailAddress email, PhoneNumber phone,
-                                      Address billingAddress, TaxIdentifier taxId, CustomerStatus status, AuditInfo auditInfo) {
-        return new Customer(id, name, email, phone, billingAddress, taxId, status, auditInfo);
+                                      Address billingAddress, CustomerStatus status, AuditInfo auditInfo) {
+        return new Customer(id, name, email, phone, billingAddress, status, auditInfo);
     }
     
     public static Customer create(CustomerName name, EmailAddress email, PhoneNumber phone,
-                                 Address billingAddress, TaxIdentifier taxId, String createdBy) {
+                                 Address billingAddress, String createdBy) {
         return new Customer(
             UUID.randomUUID(),
             name,
             email,
             phone,
             billingAddress,
-            taxId,
             CustomerStatus.ACTIVE,
             AuditInfo.create(createdBy)
         );
@@ -67,10 +64,6 @@ public class Customer {
     
     public Address getBillingAddress() {
         return billingAddress;
-    }
-    
-    public TaxIdentifier getTaxId() {
-        return taxId;
     }
     
     public CustomerStatus getStatus() {

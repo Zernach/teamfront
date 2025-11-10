@@ -43,9 +43,6 @@ public class CustomerEntity {
     @Column(name = "country", nullable = false, length = 100)
     private String country;
     
-    @Column(name = "tax_id", length = 20)
-    private String taxId;
-    
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private CustomerStatus status;
@@ -76,7 +73,6 @@ public class CustomerEntity {
         this.state = customer.getBillingAddress().getState();
         this.zipCode = customer.getBillingAddress().getZipCode();
         this.country = customer.getBillingAddress().getCountry();
-        this.taxId = customer.getTaxId().isEmpty() ? null : customer.getTaxId().getValue();
         this.status = customer.getStatus();
         this.createdAt = customer.getAuditInfo().getCreatedAt();
         this.lastModifiedAt = customer.getAuditInfo().getLastModifiedAt();
@@ -91,7 +87,6 @@ public class CustomerEntity {
             EmailAddress.of(email),
             phone != null ? PhoneNumber.of(phone) : PhoneNumber.empty(),
             Address.of(street, city, state, zipCode, country),
-            taxId != null ? TaxIdentifier.of(taxId) : TaxIdentifier.empty(),
             status,
             AuditInfo.reconstruct(createdAt, lastModifiedAt, createdBy, lastModifiedBy)
         );
@@ -175,14 +170,6 @@ public class CustomerEntity {
     
     public void setCountry(String country) {
         this.country = country;
-    }
-    
-    public String getTaxId() {
-        return taxId;
-    }
-    
-    public void setTaxId(String taxId) {
-        this.taxId = taxId;
     }
     
     public CustomerStatus getStatus() {

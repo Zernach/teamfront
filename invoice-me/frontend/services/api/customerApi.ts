@@ -22,7 +22,6 @@ export interface CustomerDetail {
   state: string;
   zipCode: string;
   country: string;
-  taxId?: string;
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'DELETED';
   outstandingBalance: number;
   activeInvoicesCount: number;
@@ -50,7 +49,6 @@ export interface CreateCustomerRequest {
   state: string;
   zipCode: string;
   country: string;
-  taxId?: string;
 }
 
 export interface UpdateCustomerRequest {
@@ -63,7 +61,6 @@ export interface UpdateCustomerRequest {
   state?: string;
   zipCode?: string;
   country?: string;
-  taxId?: string;
 }
 
 export const customerApi = {

@@ -46,7 +46,6 @@ public class DeleteCustomerCommandHandler {
                 customer.getEmail(),
                 customer.getPhone(),
                 customer.getBillingAddress(),
-                customer.getTaxId(),
                 CustomerStatus.DELETED,
                 AuditInfo.update(customer.getAuditInfo(), command.getDeletedBy())
             );

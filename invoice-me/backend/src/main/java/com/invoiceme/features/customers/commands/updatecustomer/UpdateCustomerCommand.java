@@ -13,12 +13,11 @@ public class UpdateCustomerCommand {
     private final String state;
     private final String zipCode;
     private final String country;
-    private final String taxId;
     private final String modifiedBy;
     
     public UpdateCustomerCommand(UUID customerId, String firstName, String lastName, String email,
                                 String phone, String street, String city, String state, String zipCode,
-                                String country, String taxId, String modifiedBy) {
+                                String country, String modifiedBy) {
         this.customerId = customerId;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -29,7 +28,6 @@ public class UpdateCustomerCommand {
         this.state = state;
         this.zipCode = zipCode;
         this.country = country;
-        this.taxId = taxId;
         this.modifiedBy = modifiedBy;
     }
     
@@ -73,10 +71,6 @@ public class UpdateCustomerCommand {
         return country;
     }
     
-    public String getTaxId() {
-        return taxId;
-    }
-    
     public String getModifiedBy() {
         return modifiedBy;
     }
@@ -84,7 +78,7 @@ public class UpdateCustomerCommand {
     public boolean hasAnyField() {
         return firstName != null || lastName != null || email != null || phone != null ||
                street != null || city != null || state != null || zipCode != null ||
-               country != null || taxId != null;
+               country != null;
     }
 }
 

@@ -161,11 +161,70 @@ public class InvoiceDetailDto {
         this.lastModifiedBy = lastModifiedBy;
     }
 
+    private CustomerSummaryDto customer;
+    private List<PaymentSummaryDto> payments;
+
+    public CustomerSummaryDto getCustomer() {
+        return customer;
+    }
+
+    public void setCustomer(CustomerSummaryDto customer) {
+        this.customer = customer;
+    }
+
+    public List<PaymentSummaryDto> getPayments() {
+        return payments;
+    }
+
+    public void setPayments(List<PaymentSummaryDto> payments) {
+        this.payments = payments;
+    }
+
+    public static class CustomerSummaryDto {
+        private UUID id;
+        private String fullName;
+        private String email;
+
+        public UUID getId() {
+            return id;
+        }
+
+        public void setId(UUID id) {
+            this.id = id;
+        }
+
+        public String getFullName() {
+            return fullName;
+        }
+
+        public void setFullName(String fullName) {
+            this.fullName = fullName;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+    }
+
     public static class LineItemDto {
+        private String id;
         private String description;
         private BigDecimal quantity;
         private BigDecimal unitPrice;
         private BigDecimal lineTotal;
+        private int sortOrder;
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
 
         public String getDescription() {
             return description;
@@ -197,6 +256,71 @@ public class InvoiceDetailDto {
 
         public void setLineTotal(BigDecimal lineTotal) {
             this.lineTotal = lineTotal;
+        }
+
+        public int getSortOrder() {
+            return sortOrder;
+        }
+
+        public void setSortOrder(int sortOrder) {
+            this.sortOrder = sortOrder;
+        }
+    }
+
+    public static class PaymentSummaryDto {
+        private UUID id;
+        private BigDecimal amount;
+        private LocalDate paymentDate;
+        private String paymentMethod;
+        private String referenceNumber;
+        private String status;
+
+        public UUID getId() {
+            return id;
+        }
+
+        public void setId(UUID id) {
+            this.id = id;
+        }
+
+        public BigDecimal getAmount() {
+            return amount;
+        }
+
+        public void setAmount(BigDecimal amount) {
+            this.amount = amount;
+        }
+
+        public LocalDate getPaymentDate() {
+            return paymentDate;
+        }
+
+        public void setPaymentDate(LocalDate paymentDate) {
+            this.paymentDate = paymentDate;
+        }
+
+        public String getPaymentMethod() {
+            return paymentMethod;
+        }
+
+        public void setPaymentMethod(String paymentMethod) {
+            this.paymentMethod = paymentMethod;
+        }
+
+        public String getReferenceNumber() {
+            return referenceNumber;
+        }
+
+        public void setReferenceNumber(String referenceNumber) {
+            this.referenceNumber = referenceNumber;
+        }
+
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
         }
     }
 }

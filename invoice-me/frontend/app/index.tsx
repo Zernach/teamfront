@@ -31,6 +31,17 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={styles.menuItem}
+          onPress={() => router.push('/invoices')}
+        >
+          <Text style={styles.menuIcon}>📋</Text>
+          <Text style={styles.menuTitle}>Invoices</Text>
+          <Text style={styles.menuDescription}>
+            View and manage all invoices
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
           onPress={() => router.push('/invoices/new')}
         >
           <Text style={styles.menuIcon}>📄</Text>

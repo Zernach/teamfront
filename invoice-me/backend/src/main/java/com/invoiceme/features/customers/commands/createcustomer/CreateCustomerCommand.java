@@ -12,12 +12,11 @@ public class CreateCustomerCommand {
     private final String state;
     private final String zipCode;
     private final String country;
-    private final String taxId;
     private final String createdBy;
     
     public CreateCustomerCommand(String firstName, String lastName, String email, String phone,
                                 String street, String city, String state, String zipCode, String country,
-                                String taxId, String createdBy) {
+                                String createdBy) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
@@ -27,7 +26,6 @@ public class CreateCustomerCommand {
         this.state = state;
         this.zipCode = zipCode;
         this.country = country;
-        this.taxId = taxId;
         this.createdBy = createdBy;
     }
     
@@ -65,10 +63,6 @@ public class CreateCustomerCommand {
     
     public String getCountry() {
         return country;
-    }
-    
-    public String getTaxId() {
-        return taxId;
     }
     
     public String getCreatedBy() {

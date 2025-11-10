@@ -34,9 +34,6 @@ public class CreateCustomerCommandHandler {
             command.getZipCode(),
             command.getCountry()
         );
-        TaxIdentifier taxId = command.getTaxId() != null && !command.getTaxId().isBlank()
-            ? TaxIdentifier.of(command.getTaxId())
-            : TaxIdentifier.empty();
         
         // Create customer
         Customer customer = Customer.create(
@@ -44,7 +41,6 @@ public class CreateCustomerCommandHandler {
             email,
             phone,
             address,
-            taxId,
             command.getCreatedBy()
         );
         

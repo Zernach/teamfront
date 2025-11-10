@@ -4,7 +4,19 @@ using System.Reflection;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 
-var builder = WebApplication.CreateBuilder(args);
+// Set default environment to Local if not specified
+var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+if (string.IsNullOrEmpty(env))
+{
+    Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Local");
+}
+
+var options = new WebApplicationOptions
+{
+    EnvironmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Local"
+};
+
+var builder = WebApplication.CreateBuilder(options);
 
 // Configure port binding for Elastic Beanstalk
 // EB provides PORT environment variable, fallback to 5000 for local development

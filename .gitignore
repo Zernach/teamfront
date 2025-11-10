@@ -11,3 +11,10 @@ android
 # JAR files (build artifacts) - ignore all JARs except those in target directories
 **/*.jar
 !**/target/**/*.jar
+
+# ENV files
+**/*.env
+application-dev.properties
+application-prod.properties
+appsettings.Dev.json
+appsettings.Prod.json

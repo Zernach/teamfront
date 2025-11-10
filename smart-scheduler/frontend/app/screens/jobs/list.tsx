@@ -80,7 +80,7 @@ export default function JobListScreen() {
   };
 
   const renderJob = ({ item }: { item: JobListItem }) => (
-    <TouchableOpacity onPress={() => handleJobPress(item.id)}>
+    <TouchableOpacity onPress={() => handleJobPress(item?.id)}>
       <CustomCard
         renderHeader={<View />}
         renderFooter={<View />}
@@ -133,7 +133,7 @@ export default function JobListScreen() {
         <FlatList
           data={jobs}
           renderItem={renderJob}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item?.id}
           onRefresh={() => loadJobs(1)}
           refreshing={loading}
           ListEmptyComponent={

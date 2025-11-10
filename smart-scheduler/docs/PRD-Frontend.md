@@ -1713,7 +1713,7 @@ import { FlatList } from 'react-native';
 <FlatList
   data={contractors}
   renderItem={({ item }) => <ContractorCard contractor={item} />}
-  keyExtractor={(item) => item.id}
+  keyExtractor={(item) => item?.id}
   initialNumToRender={10}
   maxToRenderPerBatch={10}
   windowSize={5}

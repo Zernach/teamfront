@@ -61,7 +61,7 @@ export default function ContractorListScreen() {
   };
 
   const renderContractor = ({ item }: { item: ContractorListItem }) => (
-    <TouchableOpacity onPress={() => handleContractorPress(item.id)}>
+    <TouchableOpacity onPress={() => handleContractorPress(item?.id)}>
       <CustomCard
         renderHeader={<View />}
         renderMiddle={
@@ -124,7 +124,7 @@ export default function ContractorListScreen() {
           <FlatList
             data={contractors}
             renderItem={renderContractor}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item?.id}
             contentContainerStyle={styles.list}
             onRefresh={() => loadContractors(pagination.page)}
             refreshing={loading}

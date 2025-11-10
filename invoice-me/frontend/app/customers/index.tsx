@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
+  Text,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useNavigation } from '@react-navigation/native';
@@ -14,20 +15,41 @@ import { customerApi, CustomerSummary } from '../../services/api/customerApi';
 import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/spacing';
 import { Screen } from '../../components/screen';
+import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { setCustomers } from '../../store/customerSlice';
+import { FilterButtons } from '../../components/filter-buttons';
 
 export default function CustomerListScreen() {
   const router = useRouter();
   const navigation = useNavigation();
-  const [customers, setCustomers] = useState<CustomerSummary[]>([]);
+  const dispatch = useAppDispatch();
+  // Get customers from Redux store
+  const reduxCustomers = useAppSelector((state) => state.customers.customers);
+  const [localCustomers, setLocalCustomers] = useState<CustomerSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [pageNumber, setPageNumber] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
+  // Use Redux customers when no search/filter is applied, otherwise use local state
+  const customers = searchTerm || statusFilter !== 'ALL' ? localCustomers : reduxCustomers;
+
   useEffect(() => {
-    loadCustomers();
-  }, [searchTerm, statusFilter]);
+    if (searchTerm || statusFilter !== 'ALL') {
+      // Load filtered/searched customers
+      loadCustomers();
+    } else {
+      // When no search/filter, use Redux customers
+      // If Redux is empty, load from API
+      if (reduxCustomers.length === 0) {
+        loadCustomers();
+      } else {
+        setLoading(false);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, statusFilter, reduxCustomers.length]);
 
   const loadCustomers = async (page = 0) => {
     try {
@@ -42,9 +64,16 @@ export default function CustomerListScreen() {
       });
 
       if (page === 0) {
-        setCustomers(response.customers);
+        if (searchTerm || statusFilter !== 'ALL') {
+          // For filtered/searched results, use local state
+          setLocalCustomers(response.customers);
+        } else {
+          // For unfiltered results, update Redux store
+          dispatch(setCustomers(response.customers));
+        }
       } else {
-        setCustomers((prev) => [...prev, ...response.customers]);
+        // Pagination: append to local state (only used for filtered/searched results)
+        setLocalCustomers((prev) => [...prev, ...response.customers]);
       }
 
       setHasMore(response.pageNumber < response.totalPages - 1);
@@ -85,7 +114,7 @@ export default function CustomerListScreen() {
           <View>
             <Text style={styles.label}>Outstanding</Text>
             <Text style={styles.amount}>
-              ${item.outstandingBalance?.toFixed(2)}
+              ${(item.outstandingBalance ?? 0).toFixed(2)}
             </Text>
           </View>
           <View>
@@ -101,12 +130,20 @@ export default function CustomerListScreen() {
     <Screen style={styles.container}>
       <View style={styles.header}>
         {navigation.canGoBack() && (
-          <View style={styles.backButtonContainer}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-              <Text style={styles.backButtonText}>← Back</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Text style={styles.backButtonText}>← Back</Text>
+          </TouchableOpacity>
         )}
+        <Text style={styles.title}>Customers</Text>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => router.push('/customers/new')}
+        >
+          <Text style={styles.addButtonText}>+ New</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.filters}>
         <TextInput
           style={styles.searchInput}
           placeholder="Search customers..."
@@ -115,25 +152,11 @@ export default function CustomerListScreen() {
           placeholderTextColor={Colors.textSecondary}
         />
         <View style={styles.filterRow}>
-          {['ALL', 'ACTIVE', 'INACTIVE'].map((status) => (
-            <TouchableOpacity
-              key={status}
-              style={[
-                styles.filterButton,
-                statusFilter === status && styles.filterButtonActive,
-              ]}
-              onPress={() => setStatusFilter(status)}
-            >
-              <Text
-                style={[
-                  styles.filterButtonText,
-                  statusFilter === status && styles.filterButtonTextActive,
-                ]}
-              >
-                {status}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          <FilterButtons
+            options={['ALL', 'ACTIVE', 'INACTIVE']}
+            selectedValue={statusFilter}
+            onSelect={setStatusFilter}
+          />
         </View>
       </View>
 
@@ -159,13 +182,6 @@ export default function CustomerListScreen() {
           }
         />
       )}
-
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push('/customers/new')}
-      >
-        <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
     </Screen>
   );
 }
@@ -175,20 +191,43 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
-    backgroundColor: Colors.surface,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: Spacing.md,
+    backgroundColor: Colors.surface,
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
   },
-  backButtonContainer: {
-    marginBottom: Spacing.md,
-  },
   backButton: {
-    alignSelf: 'flex-start',
+    marginRight: Spacing.sm,
   },
   backButtonText: {
     fontSize: 16,
     color: Colors.primary,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.text,
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  addButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: 8,
+  },
+  addButtonText: {
+    color: '#000',
+    fontWeight: '600',
+  },
+  filters: {
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
   },
   searchInput: {
     backgroundColor: Colors.background,
@@ -201,25 +240,6 @@ const styles = StyleSheet.create({
   filterRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
-  },
-  filterButton: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: 16,
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  filterButtonActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  filterButtonText: {
-    color: Colors.text,
-    fontSize: 14,
-  },
-  filterButtonTextActive: {
-    color: Colors.surface,
   },
   card: {
     backgroundColor: Colors.surface,
@@ -298,29 +318,5 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
   },
-  fab: {
-    position: 'absolute',
-    right: Spacing.md,
-    bottom: Spacing.md,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  fabText: {
-    color: Colors.surface,
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
 });
-
-// Add Text import
-import { Text } from 'react-native';
 

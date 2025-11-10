@@ -16,9 +16,12 @@ import { Spacing } from '../../constants/spacing';
 import { Text } from 'react-native';
 import { Screen } from '../../components/screen';
 import { usePhoneNumber } from '../../hooks/usePhoneNumber';
+import { useAppDispatch } from '../../hooks/redux';
+import { addCustomer } from '../../store/customerSlice';
 
 export default function CreateCustomerScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<CreateCustomerRequest>({
     firstName: '',
@@ -83,7 +86,21 @@ export default function CreateCustomerScreen() {
 
     try {
       setLoading(true);
-      await customerApi.createCustomer(submitData);
+      const createdCustomer = await customerApi.createCustomer(submitData);
+      
+      // Convert CustomerDetail to CustomerSummary for Redux store
+      const customerSummary = {
+        id: createdCustomer.id,
+        fullName: createdCustomer.fullName,
+        email: createdCustomer.email,
+        status: createdCustomer.status,
+        outstandingBalance: createdCustomer.outstandingBalance,
+        activeInvoicesCount: createdCustomer.activeInvoicesCount,
+      };
+      
+      // Add customer to Redux store
+      dispatch(addCustomer(customerSummary));
+      
       router.back();
     } catch (error: any) {
       // Handle validation errors from backend

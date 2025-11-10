@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButtonText: {
-    color: Colors.white,
+    color: Colors.background,
     fontSize: 16,
     fontWeight: '600',
   },

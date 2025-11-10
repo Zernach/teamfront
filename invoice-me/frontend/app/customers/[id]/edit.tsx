@@ -81,9 +81,17 @@ export default function EditCustomerScreen() {
       return;
     }
     
+    // Filter out empty strings - only send fields with actual values
+    const cleanedData: UpdateCustomerRequest = {};
+    Object.entries(submitData).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        cleanedData[key as keyof UpdateCustomerRequest] = value as string;
+      }
+    });
+    
     try {
       setSaving(true);
-      await customerApi.updateCustomer(id!, submitData);
+      await customerApi.updateCustomer(id!, cleanedData);
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to update customer');

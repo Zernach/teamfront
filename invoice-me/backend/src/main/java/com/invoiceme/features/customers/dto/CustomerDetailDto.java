@@ -6,15 +6,27 @@ import java.util.UUID;
 
 public class CustomerDetailDto {
     private UUID id;
+    private String firstName;
+    private String lastName;
     private String fullName;
     private String email;
     private String phone;
     private AddressDto billingAddress;
+    // Flat address fields for frontend compatibility
+    private String street;
+    private String city;
+    private String state;
+    private String zipCode;
+    private String country;
     private String status;
     private int totalInvoicesCount;
     private BigDecimal totalInvoicedAmount;
     private BigDecimal totalPaidAmount;
     private BigDecimal outstandingBalance;
+    // Frontend-compatible field names
+    private int activeInvoicesCount;
+    private BigDecimal totalInvoiced;
+    private BigDecimal totalPaid;
     private LocalDateTime createdAt;
     private LocalDateTime lastModifiedAt;
     
@@ -24,6 +36,22 @@ public class CustomerDetailDto {
     
     public void setId(UUID id) {
         this.id = id;
+    }
+    
+    public String getFirstName() {
+        return firstName;
+    }
+    
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+    
+    public String getLastName() {
+        return lastName;
+    }
+    
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
     
     public String getFullName() {
@@ -58,6 +86,46 @@ public class CustomerDetailDto {
         this.billingAddress = billingAddress;
     }
     
+    public String getStreet() {
+        return street;
+    }
+    
+    public void setStreet(String street) {
+        this.street = street;
+    }
+    
+    public String getCity() {
+        return city;
+    }
+    
+    public void setCity(String city) {
+        this.city = city;
+    }
+    
+    public String getState() {
+        return state;
+    }
+    
+    public void setState(String state) {
+        this.state = state;
+    }
+    
+    public String getZipCode() {
+        return zipCode;
+    }
+    
+    public void setZipCode(String zipCode) {
+        this.zipCode = zipCode;
+    }
+    
+    public String getCountry() {
+        return country;
+    }
+    
+    public void setCountry(String country) {
+        this.country = country;
+    }
+    
     public String getStatus() {
         return status;
     }
@@ -72,6 +140,8 @@ public class CustomerDetailDto {
     
     public void setTotalInvoicesCount(int totalInvoicesCount) {
         this.totalInvoicesCount = totalInvoicesCount;
+        // Also set frontend-compatible field
+        this.activeInvoicesCount = totalInvoicesCount;
     }
     
     public BigDecimal getTotalInvoicedAmount() {
@@ -80,6 +150,8 @@ public class CustomerDetailDto {
     
     public void setTotalInvoicedAmount(BigDecimal totalInvoicedAmount) {
         this.totalInvoicedAmount = totalInvoicedAmount;
+        // Also set frontend-compatible field
+        this.totalInvoiced = totalInvoicedAmount;
     }
     
     public BigDecimal getTotalPaidAmount() {
@@ -88,6 +160,32 @@ public class CustomerDetailDto {
     
     public void setTotalPaidAmount(BigDecimal totalPaidAmount) {
         this.totalPaidAmount = totalPaidAmount;
+        // Also set frontend-compatible field
+        this.totalPaid = totalPaidAmount;
+    }
+    
+    public int getActiveInvoicesCount() {
+        return activeInvoicesCount;
+    }
+    
+    public void setActiveInvoicesCount(int activeInvoicesCount) {
+        this.activeInvoicesCount = activeInvoicesCount;
+    }
+    
+    public BigDecimal getTotalInvoiced() {
+        return totalInvoiced;
+    }
+    
+    public void setTotalInvoiced(BigDecimal totalInvoiced) {
+        this.totalInvoiced = totalInvoiced;
+    }
+    
+    public BigDecimal getTotalPaid() {
+        return totalPaid;
+    }
+    
+    public void setTotalPaid(BigDecimal totalPaid) {
+        this.totalPaid = totalPaid;
     }
     
     public BigDecimal getOutstandingBalance() {

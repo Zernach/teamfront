@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { customerApi, CustomerDetail } from '../../services/api/customerApi';
 import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/spacing';
@@ -26,6 +27,15 @@ export default function CustomerDetailScreen() {
       loadCustomer();
     }
   }, [id]);
+
+  // Reload customer data when screen comes into focus (e.g., after editing)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (id) {
+        loadCustomer();
+      }
+    }, [id])
+  );
 
   const loadCustomer = async () => {
     try {
@@ -129,7 +139,7 @@ export default function CustomerDetailScreen() {
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Outstanding</Text>
               <Text style={[styles.summaryValue, styles.outstanding]}>
-                ${customer.outstandingBalance?.toFixed(2)}
+                ${(customer.outstandingBalance ?? 0).toFixed(2)}
               </Text>
             </View>
             <View style={styles.summaryRow}>

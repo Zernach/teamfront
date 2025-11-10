@@ -69,14 +69,20 @@ public class UpdateCustomerCommandHandler {
         }
         
         Address address;
-        if (command.getStreet() != null || command.getCity() != null || command.getState() != null ||
-            command.getZipCode() != null || command.getCountry() != null) {
+        // Check if any address field is provided (not null and not blank)
+        boolean hasStreet = command.getStreet() != null && !command.getStreet().isBlank();
+        boolean hasCity = command.getCity() != null && !command.getCity().isBlank();
+        boolean hasState = command.getState() != null && !command.getState().isBlank();
+        boolean hasZipCode = command.getZipCode() != null && !command.getZipCode().isBlank();
+        boolean hasCountry = command.getCountry() != null && !command.getCountry().isBlank();
+        
+        if (hasStreet || hasCity || hasState || hasZipCode || hasCountry) {
             address = Address.of(
-                command.getStreet() != null ? command.getStreet() : customer.getBillingAddress().getStreet(),
-                command.getCity() != null ? command.getCity() : customer.getBillingAddress().getCity(),
-                command.getState() != null ? command.getState() : customer.getBillingAddress().getState(),
-                command.getZipCode() != null ? command.getZipCode() : customer.getBillingAddress().getZipCode(),
-                command.getCountry() != null ? command.getCountry() : customer.getBillingAddress().getCountry()
+                hasStreet ? command.getStreet() : customer.getBillingAddress().getStreet(),
+                hasCity ? command.getCity() : customer.getBillingAddress().getCity(),
+                hasState ? command.getState() : customer.getBillingAddress().getState(),
+                hasZipCode ? command.getZipCode() : customer.getBillingAddress().getZipCode(),
+                hasCountry ? command.getCountry() : customer.getBillingAddress().getCountry()
             );
         } else {
             address = customer.getBillingAddress();

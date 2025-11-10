@@ -32,6 +32,7 @@ public class GetCustomerByIdQueryHandler {
         dto.setTotalInvoicedAmount(summary.getTotalInvoicedAmount());
         dto.setTotalPaidAmount(summary.getTotalPaidAmount());
         dto.setOutstandingBalance(summary.getOutstandingBalance());
+        // Frontend-compatible fields are set automatically via setters
         
         return dto;
     }
@@ -39,6 +40,8 @@ public class GetCustomerByIdQueryHandler {
     private CustomerDetailDto mapToDto(Customer customer) {
         CustomerDetailDto dto = new CustomerDetailDto();
         dto.setId(customer.getId());
+        dto.setFirstName(customer.getName().getFirstName());
+        dto.setLastName(customer.getName().getLastName());
         dto.setFullName(customer.getName().getFullName());
         dto.setEmail(customer.getEmail().getValue());
         dto.setPhone(customer.getPhone().isEmpty() ? null : customer.getPhone().getValue());
@@ -50,6 +53,13 @@ public class GetCustomerByIdQueryHandler {
         addressDto.setZipCode(customer.getBillingAddress().getZipCode());
         addressDto.setCountry(customer.getBillingAddress().getCountry());
         dto.setBillingAddress(addressDto);
+        
+        // Set flat address fields for frontend compatibility
+        dto.setStreet(customer.getBillingAddress().getStreet());
+        dto.setCity(customer.getBillingAddress().getCity());
+        dto.setState(customer.getBillingAddress().getState());
+        dto.setZipCode(customer.getBillingAddress().getZipCode());
+        dto.setCountry(customer.getBillingAddress().getCountry());
         
         dto.setStatus(customer.getStatus().name());
         dto.setCreatedAt(customer.getAuditInfo().getCreatedAt());

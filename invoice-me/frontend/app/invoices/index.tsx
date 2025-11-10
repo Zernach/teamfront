@@ -16,6 +16,7 @@ import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/spacing';
 import { Text } from 'react-native';
 import { Screen } from '../../components/screen';
+import { FilterButtons } from '../../components/filter-buttons';
 
 export default function InvoiceListScreen() {
   const router = useRouter();
@@ -182,25 +183,11 @@ export default function InvoiceListScreen() {
             placeholderTextColor={Colors.textSecondary}
           />
           <View style={styles.statusFilters}>
-            {(['ALL', 'DRAFT', 'SENT', 'PAID'] as const).map((status) => (
-              <TouchableOpacity
-                key={status}
-                style={[
-                  styles.statusFilter,
-                  statusFilter === status && styles.statusFilterActive,
-                ]}
-                onPress={() => setStatusFilter(status)}
-              >
-                <Text
-                  style={[
-                    styles.statusFilterText,
-                    statusFilter === status && styles.statusFilterTextActive,
-                  ]}
-                >
-                  {status}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            <FilterButtons
+              options={['ALL', 'DRAFT', 'SENT', 'PAID']}
+              selectedValue={statusFilter}
+              onSelect={(value) => setStatusFilter(value as typeof statusFilter)}
+            />
           </View>
         </View>
 
@@ -257,6 +244,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.text,
     flex: 1,
+    marginLeft: Spacing.md,
   },
   addButton: {
     backgroundColor: Colors.primary,
@@ -265,7 +253,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   addButtonText: {
-    color: Colors.white,
+    color: '#000',
     fontWeight: '600',
   },
   filters: {
@@ -287,25 +275,6 @@ const styles = StyleSheet.create({
   statusFilters: {
     flexDirection: 'row',
     gap: Spacing.sm,
-  },
-  statusFilter: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  statusFilterActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  statusFilterText: {
-    fontSize: 12,
-    color: Colors.text,
-  },
-  statusFilterTextActive: {
-    color: Colors.white,
-    fontWeight: '600',
   },
   list: {
     padding: Spacing.md,

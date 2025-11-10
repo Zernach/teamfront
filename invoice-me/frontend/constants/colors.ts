@@ -1,6 +1,8 @@
 // constants/colors.ts
+import { TextInputProps } from 'react-native';
+
 export const Colors = {
-  primary: '#007AFF',
+  primary: '#72fa41',
   secondary: '#5856D6',
   success: '#34C759',
   warning: '#FF9500',
@@ -20,9 +22,11 @@ export const COLORS = Colors;
 
 // Export additional constants for existing components
 export const DEFAULT_BORDER_COLOR = Colors.border;
-export const TEXT_INPUT_COLORS = {
-  border: Colors.border,
-  text: Colors.text,
-  placeholder: Colors.textSecondary,
+export const TEXT_INPUT_COLORS: TextInputProps = {
+  selectionColor: Colors.textSecondary,
+  cursorColor: Colors.white,
+  selectionHandleColor: Colors.textSecondary,
+  placeholderTextColor: Colors.textSecondary,
+  keyboardAppearance: 'dark' as const,
 };
 

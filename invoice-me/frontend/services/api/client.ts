@@ -1,5 +1,6 @@
 // services/api/client.ts
 import { API_CONFIG, ApiException } from './config';
+import { tokenStorage } from '../tokenStorage';
 
 class ApiClient {
   private baseURL: string;
@@ -18,14 +19,22 @@ class ApiClient {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
+    // Get auth token and add to headers
+    const token = await tokenStorage.getAuthToken();
+    const headers: Record<string, string> = {
+      ...API_CONFIG.headers,
+      ...(options.headers as Record<string, string>),
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     try {
       const response = await fetch(url, {
         ...options,
         signal: controller.signal,
-        headers: {
-          ...API_CONFIG.headers,
-          ...options.headers,
-        },
+        headers,
       });
 
       clearTimeout(timeoutId);

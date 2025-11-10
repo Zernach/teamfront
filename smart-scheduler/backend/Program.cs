@@ -1,4 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Data;
 using SmartScheduler.Data;
 using SmartScheduler.Services;
 using System.Reflection;
@@ -29,7 +33,12 @@ if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
 }
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.WriteIndented = false;
+    });
 
 // Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
@@ -76,6 +85,33 @@ builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IDistanceService, DistanceService>();
 builder.Services.AddScoped<IScoringService, ScoringService>();
+builder.Services.AddScoped<IJwtService, JwtService>();
+
+// Configure JWT Authentication
+var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("Jwt:SecretKey is not configured");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "SmartScheduler";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "SmartScheduler";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey))
+    };
+});
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -83,14 +119,49 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
-        dbContext.Database.EnsureCreated();
+        // Ensure database can connect
+        if (!dbContext.Database.CanConnect())
+        {
+            logger.LogInformation("Database does not exist. Creating database...");
+            dbContext.Database.EnsureCreated();
+        }
+        else
+        {
+            // Check if users table exists
+            var connection = dbContext.Database.GetDbConnection();
+            if (connection.State != ConnectionState.Open)
+            {
+                connection.Open();
+            }
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users')";
+            var tableExists = command.ExecuteScalar();
+            
+            if (tableExists == null || !(bool)tableExists)
+            {
+                logger.LogInformation("Users table does not exist. Creating users table...");
+                // Create users table manually
+                dbContext.Database.ExecuteSqlRaw(@"
+                    CREATE TABLE IF NOT EXISTS users (
+                        id UUID PRIMARY KEY,
+                        username VARCHAR(50) NOT NULL UNIQUE,
+                        email VARCHAR(255) NOT NULL UNIQUE,
+                        password_hash VARCHAR(255) NOT NULL,
+                        created_at TIMESTAMP NOT NULL,
+                        updated_at TIMESTAMP NOT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS ix_users_username ON users(username);
+                    CREATE INDEX IF NOT EXISTS ix_users_email ON users(email);
+                ");
+            }
+        }
     }
     catch (Exception ex)
     {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while creating the database.");
+        logger.LogError(ex, "An error occurred while ensuring database is created.");
         throw;
     }
 }
@@ -102,10 +173,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// Enable CORS (must be before UseAuthorization and MapControllers)
+// Enable CORS (must be before UseAuthentication, UseAuthorization and MapControllers)
 app.UseCors("AllowFrontend");
 
 // Note: HTTPS redirection disabled for Elastic Beanstalk (handled by load balancer)
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

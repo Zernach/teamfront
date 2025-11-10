@@ -2,13 +2,15 @@ import React from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from 'constants/colors';
+import { UserProfileButton } from '../user-profile-button';
 
 interface ScreenProps {
   children: React.ReactNode;
   style?: ViewStyle;
+  showUserProfile?: boolean; // Option to show/hide user profile icon
 }
 
-export function Screen({ children, style }: ScreenProps) {
+export function Screen({ children, style, showUserProfile = true }: ScreenProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -23,6 +25,7 @@ export function Screen({ children, style }: ScreenProps) {
       ]}
     >
       {children}
+      {showUserProfile && <UserProfileButton />}
     </View>
   );
 }

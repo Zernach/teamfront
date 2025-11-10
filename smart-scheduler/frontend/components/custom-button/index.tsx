@@ -50,6 +50,8 @@ export const CustomButton = ({
         const getTextColor = () => {
             if (textColor) return textColor;
             if (variant === 'outline') return COLORS.primary;
+            // Use black text for primary buttons (green background #72fa41)
+            if (variant === 'primary') return COLORS.black;
             return COLORS.white;
         };
 

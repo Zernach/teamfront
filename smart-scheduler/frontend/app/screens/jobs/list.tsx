@@ -6,6 +6,7 @@ import { CustomText } from 'components/custom-text/CustomText';
 import { CustomCard } from 'components/custom-card/custom-card';
 import { CustomTextInput } from 'components/custom-text-input/CustomTextInput';
 import { CustomButton } from 'components/custom-button';
+import { UserProfileButton } from 'components/user-profile-button';
 import { COLORS } from 'constants/colors';
 import { jobService, JobListItem, JobType, JobStatus, Priority, PagedResult } from 'services/jobService';
 import { PADDING_SIZES } from 'constants/styles/commonStyles';
@@ -118,11 +119,16 @@ export default function JobListScreen() {
   }
 
   return (
-    <Screen>
+    <Screen showUserProfile={false}>
       <View style={styles.container}>
         <View style={styles.header}>
           <CustomTitle title="Jobs" />
-          <CustomButton textColor='black' onPress={handleCreate} title="+ Create Job" />
+          <View style={styles.headerRight}>
+            <CustomButton textColor='black' onPress={handleCreate} title="New" />
+            <View style={styles.profileButtonSpacing}>
+              <UserProfileButton />
+            </View>
+          </View>
         </View>
 
         <CustomTextInput
@@ -177,6 +183,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: PADDING_SIZES.md,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profileButtonSpacing: {
+    marginLeft: 12,
   },
   searchInput: {
     marginBottom: PADDING_SIZES.md,

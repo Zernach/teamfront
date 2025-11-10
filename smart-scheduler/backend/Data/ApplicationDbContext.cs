@@ -10,6 +10,7 @@ public class ApplicationDbContext : DbContext
     {
     }
 
+    public DbSet<User> Users { get; set; }
     public DbSet<Contractor> Contractors { get; set; }
     public DbSet<ContractorWorkingHours> ContractorWorkingHours { get; set; }
     public DbSet<Job> Jobs { get; set; }
@@ -414,6 +415,45 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => e.ContractorId);
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.ScheduledStartTime);
+        });
+
+        // Configure User entity
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.ToTable("users");
+            
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id)
+                .HasColumnName("id");
+            
+            entity.Property(e => e.Username)
+                .HasColumnName("username")
+                .HasMaxLength(50)
+                .IsRequired();
+            
+            entity.HasIndex(e => e.Username)
+                .IsUnique();
+            
+            entity.Property(e => e.Email)
+                .HasColumnName("email")
+                .HasMaxLength(255)
+                .IsRequired();
+            
+            entity.HasIndex(e => e.Email)
+                .IsUnique();
+            
+            entity.Property(e => e.PasswordHash)
+                .HasColumnName("password_hash")
+                .HasMaxLength(255)
+                .IsRequired();
+            
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at")
+                .IsRequired();
+            
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnName("updated_at")
+                .IsRequired();
         });
     }
 }

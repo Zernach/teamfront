@@ -1,12 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit';
+import authReducer from './authSlice';
 
-// Dummy reducer to satisfy Redux requirements
-const dummyReducer = (state = {}) => state;
-
-// Minimal store for components that need Redux context
 export const store = configureStore({
   reducer: {
-    app: dummyReducer,
+    auth: authReducer,
   },
 });
 

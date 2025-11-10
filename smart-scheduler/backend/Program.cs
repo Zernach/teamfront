@@ -23,8 +23,14 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Configure Database
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? "Host=localhost;Port=5432;Database=smartscheduler_dev;Username=dev_user;Password=dev_password;Include Error Detail=true";
+// Connection string is loaded from appsettings.{Environment}.json based on ASPNETCORE_ENVIRONMENT
+// Environments: Local, Dev, Prod (case-insensitive)
+// Default: Local (if ASPNETCORE_ENVIRONMENT is not set)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new InvalidOperationException("Connection string 'DefaultConnection' not found. Please ensure the appropriate appsettings.{Environment}.json file exists.");
+}
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));

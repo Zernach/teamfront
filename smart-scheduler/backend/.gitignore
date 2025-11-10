@@ -53,3 +53,8 @@ createdump
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+# Environment files with sensitive credentials
+.env.dev
+.env.prod
+.env.local

@@ -260,3 +260,4 @@ If issues are found:
 - `backend/src/test/java/com/invoiceme/features/customers/api/CustomerControllerIntegrationTest.java`
 
 
+

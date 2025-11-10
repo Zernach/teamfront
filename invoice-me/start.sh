@@ -124,7 +124,7 @@ require_cli "yarn"
 require_cli "mvn"
 require_cli "psql"
 
-FRONTEND_CMD="cd \"$SCRIPT_DIR/frontend\" && printf 'Starting Expo frontend...\\n' && yarn start"
+FRONTEND_CMD="cd \"$SCRIPT_DIR/frontend\" && printf 'Starting Expo frontend...\\n' && yarn start --port 8082"
 BACKEND_CMD="cd \"$SCRIPT_DIR/backend\" && printf 'Starting Spring Boot backend...\\n' && mvn spring-boot:run"
 DATABASE_CMD="cd \"$SCRIPT_DIR\" && printf 'Ensuring PostgreSQL is running...\\n' && if psql -U zernach -d invoiceme -c 'SELECT 1;' >/dev/null 2>&1; then printf 'PostgreSQL already running.\\n'; else printf 'Attempting to start PostgreSQL via Homebrew services...\\n'; if command -v brew >/dev/null 2>&1; then brew services start postgresql@17 >/dev/null 2>&1 || brew services start postgresql >/dev/null 2>&1 || printf 'Unable to auto-start PostgreSQL. Please run: brew services start postgresql\\n'; else printf 'Homebrew not found. Please start PostgreSQL manually.\\n'; fi; fi; printf 'Database available at localhost:5432\\nDatabase: invoiceme\\nUsername: zernach\\nPassword: (empty)\\n'"
 

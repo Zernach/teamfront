@@ -305,3 +305,4 @@ If issues are found:
 - `backend/src/test/java/com/invoiceme/features/invoices/api/InvoiceControllerIntegrationTest.java` (added update tests)
 
 
+

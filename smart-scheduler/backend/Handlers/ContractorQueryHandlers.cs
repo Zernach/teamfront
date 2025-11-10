@@ -142,10 +142,11 @@ public class ListContractorsHandler : IRequestHandler<ListContractorsQuery, Page
 
         return new PagedResult<ContractorListItemDto>
         {
-            Items = items,
+            Data = items,
             TotalCount = totalCount,
-            Page = request.Page,
-            PageSize = request.PageSize
+            CurrentPage = request.Page,
+            PageSize = request.PageSize,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize)
         };
     }
 }

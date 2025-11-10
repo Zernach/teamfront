@@ -9,7 +9,7 @@ import { CustomCard } from 'components/custom-card/custom-card';
 import { COLORS } from 'constants/colors';
 import { contractorService } from 'services/contractorService';
 import { UpdateContractorRequest, Contractor, ContractorType } from 'services/types/contractor';
-import { PADDING } from 'constants/styles/commonStyles';
+import { PADDING_SIZES } from 'constants/styles/commonStyles';
 import { Screen } from 'components/screen';
 
 export default function EditContractorScreen() {
@@ -26,7 +26,7 @@ export default function EditContractorScreen() {
 
   const loadContractor = async () => {
     if (!id) return;
-    
+
     setLoading(true);
     try {
       const data = await contractorService.getContractorById(id);
@@ -96,92 +96,112 @@ export default function EditContractorScreen() {
   return (
     <Screen>
       <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <CustomTitle title="Edit Contractor" style={styles.title} />
-        
-        <CustomCard
-          renderHeader={<View />}
-          renderMiddle={
-            <View style={styles.form}>
-              <CustomTextInput
-                placeholder="Name"
-                value={formData.name || ''}
-                onChangeText={(text) => setFormData({ ...formData, name: text })}
-                style={styles.input}
-              />
-              
-              <CustomTextInput
-                placeholder="Email"
-                value={formData.email || ''}
-                onChangeText={(text) => setFormData({ ...formData, email: text })}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                style={styles.input}
-              />
-              
-              <CustomTextInput
-                placeholder="Phone Number"
-                value={formData.phoneNumber || ''}
-                onChangeText={(text) => setFormData({ ...formData, phoneNumber: text })}
-                keyboardType="phone-pad"
-                style={styles.input}
-              />
+        <View style={styles.content}>
+          <CustomTitle title="Edit Contractor" style={styles.title} />
 
-              <CustomTextInput
-                placeholder="Address"
-                value={formData.baseLocation.address}
-                onChangeText={(text) => setFormData({ 
-                  ...formData, 
-                  baseLocation: { ...formData.baseLocation, address: text }
-                })}
-                style={styles.input}
-              />
-
-              <View style={styles.row}>
+          <CustomCard
+            renderHeader={<View />}
+            renderMiddle={
+              <View style={styles.form}>
                 <CustomTextInput
-                  placeholder="City"
-                  value={formData.baseLocation.city}
-                  onChangeText={(text) => setFormData({ 
-                    ...formData, 
-                    baseLocation: { ...formData.baseLocation, city: text }
-                  })}
-                  style={[styles.input, styles.halfInput]}
+                  placeholder="Name"
+                  initialValue={formData.name || ''}
+                  onChangeText={(text) => setFormData({ ...formData, name: text })}
+                  style={styles.input}
                 />
-                
+
                 <CustomTextInput
-                  placeholder="State"
-                  value={formData.baseLocation.state}
-                  onChangeText={(text) => setFormData({ 
-                    ...formData, 
-                    baseLocation: { ...formData.baseLocation, state: text }
+                  placeholder="Email"
+                  initialValue={formData.email || ''}
+                  onChangeText={(text) => setFormData({ ...formData, email: text })}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  style={styles.input}
+                />
+
+                <CustomTextInput
+                  placeholder="Phone Number"
+                  initialValue={formData.phoneNumber || ''}
+                  onChangeText={(text) => setFormData({ ...formData, phoneNumber: text })}
+                  keyboardType="phone-pad"
+                  style={styles.input}
+                />
+
+                <CustomTextInput
+                  placeholder="Address"
+                  initialValue={formData.baseLocation?.address || ''}
+                  onChangeText={(text) => setFormData({
+                    ...formData,
+                    baseLocation: {
+                      ...formData.baseLocation!,
+                      address: text,
+                      latitude: formData.baseLocation?.latitude ?? 0,
+                      longitude: formData.baseLocation?.longitude ?? 0,
+                    }
                   })}
-                  style={[styles.input, styles.halfInput]}
-                  maxLength={2}
+                  style={styles.input}
+                />
+
+                <View style={styles.row}>
+                  <CustomTextInput
+                    placeholder="City"
+                    initialValue={formData.baseLocation?.city || ''}
+                    onChangeText={(text) => setFormData({
+                      ...formData,
+                      baseLocation: {
+                        ...formData.baseLocation!,
+                        city: text,
+                        latitude: formData.baseLocation?.latitude ?? 0,
+                        longitude: formData.baseLocation?.longitude ?? 0,
+                      }
+                    })}
+                    style={styles.halfInput}
+                  />
+
+                  <CustomTextInput
+                    placeholder="State"
+                    initialValue={formData.baseLocation?.state || ''}
+                    onChangeText={(text) => setFormData({
+                      ...formData,
+                      baseLocation: {
+                        ...formData.baseLocation!,
+                        state: text,
+                        latitude: formData.baseLocation?.latitude ?? 0,
+                        longitude: formData.baseLocation?.longitude ?? 0,
+                      }
+                    })}
+                    style={styles.halfInput}
+                    maxLength={2}
+                  />
+                </View>
+
+                <CustomTextInput
+                  placeholder="Zip Code"
+                  initialValue={formData.baseLocation?.zipCode || ''}
+                  onChangeText={(text) => setFormData({
+                    ...formData,
+                    baseLocation: {
+                      ...formData.baseLocation!,
+                      zipCode: text,
+                      latitude: formData.baseLocation?.latitude ?? 0,
+                      longitude: formData.baseLocation?.longitude ?? 0,
+                    }
+                  })}
+                  style={styles.input}
                 />
               </View>
-
-              <CustomTextInput
-                placeholder="Zip Code"
-                value={formData.baseLocation.zipCode}
-                onChangeText={(text) => setFormData({ 
-                  ...formData, 
-                  baseLocation: { ...formData.baseLocation, zipCode: text }
-                })}
-                style={styles.input}
-              />
-            </View>
-          }
-          renderFooter={
-            <View style={styles.footer}>
-              <CustomButton
-                title={saving ? 'Saving...' : 'Save Changes'}
-                onPress={handleSubmit}
-                disabled={saving}
-              />
-            </View>
-          }
-        />
-      </View>
+            }
+            renderFooter={
+              <View style={styles.footer}>
+                <CustomButton
+                  title={saving ? 'Saving...' : 'Save Changes'}
+                  onPress={handleSubmit}
+                  disabled={saving}
+                />
+              </View>
+            }
+          />
+        </View>
       </ScrollView>
     </Screen>
   );
@@ -189,35 +209,34 @@ export default function EditContractorScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.black,
+    flex: 1,
   },
   content: {
-    padding: PADDING.md,
+    padding: PADDING_SIZES.md,
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.black,
   },
   title: {
-    marginBottom: PADDING.lg,
+    marginBottom: PADDING_SIZES.lg,
   },
   form: {
-    gap: PADDING.md,
+    gap: PADDING_SIZES.md,
   },
   input: {
-    marginBottom: PADDING.sm,
+    marginBottom: PADDING_SIZES.sm,
   },
   row: {
     flexDirection: 'row',
-    gap: PADDING.sm,
+    gap: PADDING_SIZES.sm,
   },
   halfInput: {
     flex: 1,
   },
   footer: {
-    marginTop: PADDING.lg,
+    marginTop: PADDING_SIZES.lg,
   },
 });
 

@@ -150,9 +150,6 @@ export default function CreateContractorScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.black,
-  },
   content: {
     padding: PADDING.md,
   },

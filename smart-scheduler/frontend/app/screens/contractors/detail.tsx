@@ -8,7 +8,7 @@ import { CustomButton } from 'components/custom-button';
 import { COLORS } from 'constants/colors';
 import { contractorService } from 'services/contractorService';
 import { Contractor, ContractorType, ContractorStatus } from 'services/types/contractor';
-import { PADDING } from 'constants/styles/commonStyles';
+import { PADDING_SIZES } from 'constants/styles/commonStyles';
 import { Feather } from '@expo/vector-icons';
 import { Screen } from 'components/screen';
 
@@ -25,7 +25,7 @@ export default function ContractorDetailScreen() {
 
   const loadContractor = async () => {
     if (!id) return;
-    
+
     setLoading(true);
     try {
       const data = await contractorService.getContractorById(id);
@@ -124,60 +124,60 @@ export default function ContractorDetailScreen() {
   return (
     <Screen>
       <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-            <Feather name="arrow-left" size={24} color={COLORS.white} />
-          </TouchableOpacity>
-          <CustomTitle title={contractor.name} style={styles.title} />
-        </View>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Feather name="arrow-left" size={24} color={COLORS.white} />
+            </TouchableOpacity>
+            <CustomTitle title={contractor.name} style={styles.title} />
+          </View>
 
-        <CustomCard
-          renderHeader={<View />}
-          renderMiddle={
-            <View style={styles.details}>
-              <DetailRow label="Type" value={typeLabels[contractor.type]} />
-              <DetailRow label="Status" value={statusLabels[contractor.status]} />
-              <DetailRow label="Rating" value={contractor.rating.toFixed(2)} />
-              <DetailRow label="Email" value={contractor.email} />
-              <DetailRow label="Phone" value={contractor.phoneNumber} />
-              <DetailRow label="Address" value={contractor.baseLocation.address} />
-              <DetailRow 
-                label="Location" 
-                value={`${contractor.baseLocation.city}, ${contractor.baseLocation.state} ${contractor.baseLocation.zipCode}`} 
-              />
-              {contractor.availabilityStatus && (
-                <DetailRow label="Availability" value={contractor.availabilityStatus} />
-              )}
-              {contractor.skills && contractor.skills.length > 0 && (
-                <DetailRow label="Skills" value={contractor.skills.join(', ')} />
-              )}
-            </View>
-          }
-          renderFooter={
-            <View style={styles.footer}>
-              {contractor.status === ContractorStatus.Active ? (
-                <>
-                  <CustomButton title="Edit" onPress={handleEdit} style={styles.button} />
-                  <CustomButton 
-                    title={deactivating ? 'Deactivating...' : 'Deactivate'} 
-                    onPress={handleDeactivate}
-                    disabled={deactivating}
-                    style={[styles.button, styles.dangerButton]}
-                  />
-                </>
-              ) : (
-                <CustomButton 
-                  title={deactivating ? 'Restoring...' : 'Restore'} 
-                  onPress={handleRestore}
-                  disabled={deactivating}
-                  style={styles.button}
+          <CustomCard
+            renderHeader={<View />}
+            renderMiddle={
+              <View style={styles.details}>
+                <DetailRow label="Type" value={typeLabels[contractor.type]} />
+                <DetailRow label="Status" value={statusLabels[contractor.status]} />
+                <DetailRow label="Rating" value={contractor.rating?.toFixed(2)} />
+                <DetailRow label="Email" value={contractor.email} />
+                <DetailRow label="Phone" value={contractor.phoneNumber} />
+                <DetailRow label="Address" value={contractor.baseLocation.address} />
+                <DetailRow
+                  label="Location"
+                  value={`${contractor.baseLocation.city}, ${contractor.baseLocation.state} ${contractor.baseLocation.zipCode}`}
                 />
-              )}
-            </View>
-          }
-        />
-      </View>
+                {contractor.availabilityStatus && (
+                  <DetailRow label="Availability" value={contractor.availabilityStatus} />
+                )}
+                {contractor.skills && contractor.skills.length > 0 && (
+                  <DetailRow label="Skills" value={contractor.skills.join(', ')} />
+                )}
+              </View>
+            }
+            renderFooter={
+              <View style={styles.footer}>
+                {contractor.status === ContractorStatus.Active ? (
+                  <>
+                    <CustomButton title="Edit" onPress={handleEdit} style={styles.button} />
+                    <CustomButton
+                      title={deactivating ? 'Deactivating...' : 'Deactivate'}
+                      onPress={handleDeactivate}
+                      disabled={deactivating}
+                      style={[styles.button, styles.dangerButton]}
+                    />
+                  </>
+                ) : (
+                  <CustomButton
+                    title={deactivating ? 'Restoring...' : 'Restore'}
+                    onPress={handleRestore}
+                    disabled={deactivating}
+                    style={styles.button}
+                  />
+                )}
+              </View>
+            }
+          />
+        </View>
       </ScrollView>
     </Screen>
   );
@@ -194,49 +194,48 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: COLORS.black,
+    flex: 1,
   },
   content: {
-    padding: PADDING.md,
+    padding: PADDING_SIZES.md,
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.black,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: PADDING.lg,
+    marginBottom: PADDING_SIZES.lg,
   },
   backButton: {
-    marginRight: PADDING.md,
+    marginRight: PADDING_SIZES.md,
   },
   title: {
     flex: 1,
   },
   details: {
-    gap: PADDING.md,
+    gap: PADDING_SIZES.md,
   },
   detailRow: {
     flexDirection: 'row',
-    marginBottom: PADDING.sm,
+    marginBottom: PADDING_SIZES.sm,
   },
   label: {
     fontWeight: 'bold',
-    marginRight: PADDING.sm,
+    marginRight: PADDING_SIZES.sm,
     minWidth: 100,
   },
   value: {
     flex: 1,
   },
   footer: {
-    marginTop: PADDING.lg,
-    gap: PADDING.md,
+    marginTop: PADDING_SIZES.lg,
+    gap: PADDING_SIZES.md,
   },
   button: {
-    marginBottom: PADDING.sm,
+    marginBottom: PADDING_SIZES.sm,
   },
   dangerButton: {
     backgroundColor: COLORS.red || '#ff4444',

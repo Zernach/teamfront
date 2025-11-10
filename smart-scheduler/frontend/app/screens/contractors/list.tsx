@@ -80,7 +80,7 @@ export default function ContractorListScreen() {
               </CustomText>
               <View style={styles.rating}>
                 <Feather name="star" size={16} color={COLORS.yellow || '#FFD700'} />
-                <CustomText style={styles.ratingText}>{item.rating.toFixed(1)}</CustomText>
+                <CustomText style={styles.ratingText}>{item.rating?.toFixed(1)}</CustomText>
               </View>
             </View>
           </View>
@@ -155,9 +155,6 @@ export default function ContractorListScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: COLORS.black,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

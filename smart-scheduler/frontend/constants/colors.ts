@@ -52,6 +52,12 @@ export const COLORS = {
     linkedin: '#0077B5',
     black: '#000000',
     transparent: 'transparent',
+    // Additional semantic colors
+    success: '#72fa41',
+    warning: '#fbff00',
+    error: '#e52c2c',
+    textPrimary: '#F0F0F0',
+    textSecondary: '#909090',
 };
 
 export const DEFAULT_BORDER_COLOR = COLORS.tan50;

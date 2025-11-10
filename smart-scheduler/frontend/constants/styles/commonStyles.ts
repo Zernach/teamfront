@@ -8,6 +8,15 @@ export const IMAGE_SIZE = 150;
 export const MAX_BUTTON_HEIGHT = 32;
 export const DOT_SIZE = PADDING;
 
+// Padding object for convenience
+export const PADDING_SIZES = {
+  xs: PADDING / 2,
+  sm: PADDING,
+  md: PADDING * 2,
+  lg: PADDING * 3,
+  xl: PADDING * 4,
+};
+
 // Styles
 export const FLEX_STYLE = { flex: 1 };
 export const GAP_STYLE = { gap: PADDING };

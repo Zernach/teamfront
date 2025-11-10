@@ -530,7 +530,7 @@ export function generateTraceabilityReport(matrix: CoverageMatrix[]): string {
   report += `- Covered: ${matrix.filter((m) => m.covered).length}\n`;
   report += `- Gaps: ${gaps.length}\n`;
   report += `- Waived: ${matrix.filter((m) => m.waiverReason).length}\n`;
-  report += `- Coverage Rate: ${passRate.toFixed(1)}%\n\n`;
+  report += `- Coverage Rate: ${passRate?.toFixed(1)}%\n\n`;
 
   if (gaps.length > 0) {
     report += `## ❌ Coverage Gaps (MUST RESOLVE)\n\n`;
@@ -575,7 +575,7 @@ const matrix = buildCoverageMatrix(criteria, tests);
 
 // Validate
 const { gaps, passRate } = validateCoverage(matrix);
-console.log(`Coverage: ${passRate.toFixed(1)}%`); // "Coverage: 75.0%"
+console.log(`Coverage: ${passRate?.toFixed(1)}%`); // "Coverage: 75.0%"
 console.log(`Gaps: ${gaps.length}`); // "Gaps: 1" (AC-004 has no test)
 
 // Generate report

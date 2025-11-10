@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SmartScheduler.Data;
+using SmartScheduler.Services;
 using System.Reflection;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -53,6 +54,11 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Progr
 // Add FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+
+// Register services
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
+builder.Services.AddScoped<IDistanceService, DistanceService>();
+builder.Services.AddScoped<IScoringService, ScoringService>();
 
 var app = builder.Build();
 

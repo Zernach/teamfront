@@ -12,7 +12,9 @@ export const LoadingSpinner = ({
     isLoadingSelector,
     ...restOfProps
 }: CustomLoadingSpinnerProps) => {
-    const isLoading = useSelector(isLoadingSelector ?? (() => false));
+    // Always call useSelector (hooks must be called unconditionally)
+    // Use a safe selector that returns false if no selector is provided
+    const isLoading = useSelector(isLoadingSelector ?? ((state: any) => false));
     const loading = animating || isLoading;
     if (!loading) {
         return null;

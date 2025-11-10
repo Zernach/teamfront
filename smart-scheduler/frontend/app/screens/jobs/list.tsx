@@ -89,7 +89,9 @@ export default function JobListScreen() {
             <View style={styles.jobHeader}>
               <CustomText style={styles.jobNumber}>{item.jobNumber}</CustomText>
               <View style={[styles.statusBadge, { backgroundColor: statusColors[item.status] }]}>
-                <CustomText style={styles.statusText}>{statusLabels[item.status]}</CustomText>
+                <CustomText style={[styles.statusText, item.status === JobStatus.Open && styles.statusTextOpen]}>
+                  {statusLabels[item.status]}
+                </CustomText>
               </View>
             </View>
             <CustomText style={styles.jobType}>{typeLabels[item.type]}</CustomText>
@@ -202,6 +204,9 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 12,
     fontWeight: '600',
+  },
+  statusTextOpen: {
+    color: COLORS.black,
   },
   jobType: {
     fontSize: 16,

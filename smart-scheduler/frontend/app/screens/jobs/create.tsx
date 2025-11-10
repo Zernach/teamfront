@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { CustomTitle } from 'components/custom-title';
 import { CustomText } from 'components/custom-text/CustomText';
 import { CustomTextInput } from 'components/custom-text-input/CustomTextInput';
@@ -75,9 +76,13 @@ export default function CreateJobScreen() {
         otherTypeText: selectedTypes.includes(JobType.Other) ? otherTypeText : undefined,
       };
       await jobService.create(submitData);
-      Alert.alert('Success', 'Job created successfully', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Job created successfully!',
+        position: 'top',
+      });
+      router.replace('/screens/jobs/list');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to create job');
     } finally {

@@ -35,6 +35,23 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:8083",
+                "http://localhost:3000",
+                "http://localhost:19006", // Expo web default
+                "http://localhost:19000"   // Expo dev server
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+
 // Configure Database
 // Connection string is loaded from appsettings.{Environment}.json based on ASPNETCORE_ENVIRONMENT
 // Environments: Local, Dev, Prod (case-insensitive)
@@ -84,6 +101,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Enable CORS (must be before UseAuthorization and MapControllers)
+app.UseCors("AllowFrontend");
 
 // Note: HTTPS redirection disabled for Elastic Beanstalk (handled by load balancer)
 app.UseAuthorization();

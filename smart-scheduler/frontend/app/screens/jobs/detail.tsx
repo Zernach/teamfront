@@ -126,6 +126,7 @@ export default function JobDetailScreen() {
           <CustomButton
             title="Get Recommendations"
             onPress={handleGetRecommendations}
+            textColor='black'
             style={styles.button}
           />
         )}

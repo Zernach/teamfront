@@ -1,9 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit';
 
+// Dummy reducer to satisfy Redux requirements
+const dummyReducer = (state = {}) => state;
+
 // Minimal store for components that need Redux context
 export const store = configureStore({
   reducer: {
-    // Add reducers here if needed in the future
+    app: dummyReducer,
   },
 });
 

@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
 import tokenStorage from './tokenStorage';
+import { API_URL } from '../constants/api';
 
 /**
  * API client configuration for rapid-photo-upload backend.
@@ -12,7 +13,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080/api/v1',
+      baseURL: API_URL,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -92,7 +93,7 @@ class ApiClient {
         }
 
         const response = await axios.post(
-          `${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080/api/v1'}/auth/refresh`,
+          `${API_URL}/auth/refresh`,
           { refreshToken },
           {
             headers: {

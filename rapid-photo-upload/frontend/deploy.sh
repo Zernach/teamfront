@@ -19,6 +19,11 @@ if ! aws sts get-caller-identity &> /dev/null; then
 fi
 
 echo "Building rapid-photo-upload frontend for web..."
+
+# Set production API URLs as environment variables for the build
+export EXPO_PUBLIC_API_URL="https://teamfront-rapid-photo-upload-archlife.us-west-1.elasticbeanstalk.com/api/v1"
+export EXPO_PUBLIC_WS_URL="https://teamfront-rapid-photo-upload-archlife.us-west-1.elasticbeanstalk.com"
+
 yarn install
 yarn build:web
 

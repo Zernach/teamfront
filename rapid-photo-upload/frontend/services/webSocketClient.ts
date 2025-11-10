@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { WS_URL } from '../constants/api';
 
 /**
  * WebSocket client for real-time upload progress updates.
@@ -13,8 +14,8 @@ class WebSocketClient {
       return;
     }
 
-    const url = process.env.EXPO_PUBLIC_WS_URL || 'http://localhost:8080';
-    
+    const url = WS_URL;
+
     this.socket = io(url, {
       path: '/ws/upload-progress',
       auth: token ? { token } : undefined,

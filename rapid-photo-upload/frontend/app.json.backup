@@ -58,8 +58,8 @@
     ],
     "scheme": "rapid-photo-upload",
     "extra": {
-      "EXPO_PUBLIC_COGNITO_USER_POOL_ID": "us-west-1_5kNwPlpbx",
-      "EXPO_PUBLIC_COGNITO_CLIENT_ID": "6h118c2eh6ehgai7bkcpeq4nk0",
+      "EXPO_PUBLIC_COGNITO_USER_POOL_ID": "us-west-1_M1JfYsJSn",
+      "EXPO_PUBLIC_COGNITO_CLIENT_ID": "2hstosrgndta1m2pud1l5dueqf",
       "EXPO_PUBLIC_COGNITO_REGION": "us-west-1"
     }
   }

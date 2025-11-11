@@ -27,7 +27,13 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(progressWebSocketHandler, "/ws/progress")
                 .addInterceptors(new JwtWebSocketHandshakeInterceptor(jwtService))
-                .setAllowedOrigins("*"); // In production, configure specific origins
+                .setAllowedOriginPatterns(
+                    "http://localhost:*",
+                    "http://127.0.0.1:*",
+                    "http://teamfront-rapid-photo-upload-frontend.s3-website-us-west-1.amazonaws.com",
+                    "https://teamfront-rapid-photo-upload-frontend.s3-website-us-west-1.amazonaws.com",
+                    "https://*.cloudfront.net"
+                );
     }
 }
 

@@ -5,7 +5,7 @@ import { Screen } from '../../components/screen';
 import { CustomTextInput } from '../../components/custom-text-input/CustomTextInput';
 import { CustomButton } from '../../components/custom-button';
 import { CustomText } from '../../components/custom-text/CustomText';
-import { useRegister, useLogin } from '../../hooks/auth';
+import { useRegister, useLogin, useConfirmRegistration } from '../../hooks/auth';
 import { useAppSelector } from '../../hooks/redux';
 import { COLORS } from '../../constants/colors';
 import { PADDING } from '../../constants/styles/commonStyles';
@@ -22,8 +22,14 @@ export default function RegisterScreen() {
   const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [generalError, setGeneralError] = useState('');
 
+  // Verification state
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verificationError, setVerificationError] = useState('');
+
   const registerMutation = useRegister();
   const loginMutation = useLogin();
+  const confirmMutation = useConfirmRegistration();
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
   // Redirect if already authenticated
@@ -90,9 +96,72 @@ export default function RegisterScreen() {
         password,
       });
       
-      console.log('[Register] Registration successful, logging in automatically...');
+      console.log('[Register] Registration successful, showing verification input...');
       
-      // Automatically log in the user after successful registration
+      // Show verification code input instead of auto-login
+      setNeedsVerification(true);
+      setGeneralError(''); // Clear any errors
+    } catch (error: any) {
+      console.error('[Register] Registration error:', {
+        message: error?.message,
+        code: error?.code,
+      });
+      
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      // Handle timeout errors
+      if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+        errorMessage = 'Request timed out. Please check your internet connection and try again.';
+      }
+      // Handle network errors
+      else if (error?.code === 'ERR_NETWORK' || !error?.response) {
+        errorMessage = 'Network error. Please check your internet connection and ensure the server is running.';
+      }
+      // Handle server errors
+      else if (error?.response?.status >= 500) {
+        errorMessage = 'Server error. Please try again later.';
+      }
+      // Handle validation errors
+      else if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      // Handle other errors
+      else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      setGeneralError(errorMessage);
+    }
+  };
+
+  const handleVerification = async () => {
+    // Reset errors
+    setVerificationError('');
+    setGeneralError('');
+
+    // Validate verification code
+    if (!verificationCode.trim()) {
+      setVerificationError('Verification code is required');
+      return;
+    }
+
+    if (verificationCode.trim().length !== 6) {
+      setVerificationError('Verification code must be 6 digits');
+      return;
+    }
+
+    try {
+      console.log('[Register] Confirming registration...');
+      
+      // Confirm registration with verification code
+      await confirmMutation.mutateAsync({
+        email: email.trim(),
+        confirmationCode: verificationCode.trim(),
+      });
+      
+      console.log('[Register] Registration confirmed, logging in automatically...');
+      
+      // Automatically log in the user after successful verification
       await loginMutation.mutateAsync({
         email: email.trim(),
         password,
@@ -102,59 +171,12 @@ export default function RegisterScreen() {
       // Navigation will happen via useEffect when isAuthenticated changes
       router.replace('/');
     } catch (error: any) {
-      console.error('[Register] Registration or login error:', {
+      console.error('[Register] Verification or login error:', {
         message: error?.message,
-        code: error?.code,
-        response: error?.response ? {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          data: error.response.data,
-        } : null,
-        config: error?.config ? {
-          url: error.config.url,
-          method: error.config.method,
-          baseURL: error.config.baseURL,
-          timeout: error.config.timeout,
-        } : null,
       });
       
-      let errorMessage = 'Registration failed. Please try again.';
-      
-      // Check if this is a login error (after successful registration)
-      const isLoginError = error?.config?.url?.includes('/auth/login');
-      
-      if (isLoginError) {
-        // Registration succeeded but login failed - user should try logging in manually
-        errorMessage = 'Account created successfully, but automatic login failed. Please sign in manually.';
-        // Still navigate to login page so they can sign in
-        setTimeout(() => {
-          router.replace('/auth/login');
-        }, 2000);
-      } else {
-        // Handle registration errors
-        // Handle timeout errors
-        if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
-          errorMessage = 'Request timed out. Please check your internet connection and try again.';
-        }
-        // Handle network errors
-        else if (error?.code === 'ERR_NETWORK' || !error?.response) {
-          errorMessage = 'Network error. Please check your internet connection and ensure the server is running.';
-        }
-        // Handle server errors
-        else if (error?.response?.status >= 500) {
-          errorMessage = 'Server error. Please try again later.';
-        }
-        // Handle validation errors
-        else if (error?.response?.data?.message) {
-          errorMessage = error.response.data.message;
-        }
-        // Handle other errors
-        else if (error?.message) {
-          errorMessage = error.message;
-        }
-      }
-      
-      setGeneralError(errorMessage);
+      const errorMessage = error?.message || 'Verification failed. Please check your code and try again.';
+      setVerificationError(errorMessage);
     }
   };
 
@@ -170,112 +192,168 @@ export default function RegisterScreen() {
         >
           <View style={styles.container}>
             <View style={styles.header}>
-              <CustomText style={styles.title}>Create Account</CustomText>
-              <CustomText style={styles.subtitle}>Sign up to get started</CustomText>
+              <CustomText style={styles.title}>
+                {needsVerification ? 'Verify Email' : 'Create Account'}
+              </CustomText>
+              <CustomText style={styles.subtitle}>
+                {needsVerification 
+                  ? 'Enter the 6-digit code sent to your email' 
+                  : 'Sign up to get started'}
+              </CustomText>
             </View>
 
             <View style={styles.form}>
-              <CustomTextInput
-                id="username"
-                label="Full Name"
-                placeholder="Enter your full name"
-                formattedText={username}
-                onChangeText={(text) => {
-                  setUsername(text);
-                  setUsernameError('');
-                  setGeneralError('');
-                }}
-                errorMessage={usernameError}
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="next"
-              />
+              {!needsVerification ? (
+                <>
+                  <CustomTextInput
+                    id="username"
+                    label="Full Name"
+                    placeholder="Enter your full name"
+                    formattedText={username}
+                    onChangeText={(text) => {
+                      setUsername(text);
+                      setUsernameError('');
+                      setGeneralError('');
+                    }}
+                    errorMessage={usernameError}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                  />
 
-              <CustomTextInput
-                id="email"
-                label="Email"
-                placeholder="Enter your email"
-                formattedText={email}
-                onChangeText={(text) => {
-                  setEmail(text);
-                  setEmailError('');
-                  setGeneralError('');
-                }}
-                errorMessage={emailError}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="next"
-              />
+                  <CustomTextInput
+                    id="email"
+                    label="Email"
+                    placeholder="Enter your email"
+                    formattedText={email}
+                    onChangeText={(text) => {
+                      setEmail(text);
+                      setEmailError('');
+                      setGeneralError('');
+                    }}
+                    errorMessage={emailError}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                  />
 
-              <CustomTextInput
-                id="password"
-                label="Password"
-                placeholder="Enter your password"
-                formattedText={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  setPasswordError('');
-                  setGeneralError('');
-                }}
-                errorMessage={passwordError}
-                isPasswordField
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="next"
-              />
+                  <CustomTextInput
+                    id="password"
+                    label="Password"
+                    placeholder="Enter your password"
+                    formattedText={password}
+                    onChangeText={(text) => {
+                      setPassword(text);
+                      setPasswordError('');
+                      setGeneralError('');
+                    }}
+                    errorMessage={passwordError}
+                    isPasswordField
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                  />
 
-              <CustomTextInput
-                id="confirmPassword"
-                label="Confirm Password"
-                placeholder="Confirm your password"
-                formattedText={confirmPassword}
-                onChangeText={(text) => {
-                  setConfirmPassword(text);
-                  setConfirmPasswordError('');
-                  setGeneralError('');
-                }}
-                errorMessage={confirmPasswordError}
-                isPasswordField
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="done"
-                onSubmitEditing={handleRegister}
-              />
+                  <CustomTextInput
+                    id="confirmPassword"
+                    label="Confirm Password"
+                    placeholder="Confirm your password"
+                    formattedText={confirmPassword}
+                    onChangeText={(text) => {
+                      setConfirmPassword(text);
+                      setConfirmPasswordError('');
+                      setGeneralError('');
+                    }}
+                    errorMessage={confirmPasswordError}
+                    isPasswordField
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="done"
+                    onSubmitEditing={handleRegister}
+                  />
 
-              {generalError ? (
-                <View style={styles.errorContainer}>
-                  <CustomText color={COLORS.red} style={styles.errorText}>
-                    {generalError}
-                  </CustomText>
-                </View>
-              ) : null}
+                  {generalError ? (
+                    <View style={styles.errorContainer}>
+                      <CustomText color={COLORS.red} style={styles.errorText}>
+                        {generalError}
+                      </CustomText>
+                    </View>
+                  ) : null}
 
-              <CustomButton
-                title="Sign Up"
-                onPress={handleRegister}
-                disabled={registerMutation.isPending || loginMutation.isPending}
-                style={styles.registerButton}
-              />
+                  <CustomButton
+                    title="Sign Up"
+                    onPress={handleRegister}
+                    disabled={registerMutation.isPending}
+                    style={styles.registerButton}
+                  />
 
-              {(registerMutation.isPending || loginMutation.isPending) && (
-                <View style={styles.loadingContainer}>
-                  <CustomText color={COLORS.grey} style={styles.loadingText}>
-                    {registerMutation.isPending ? 'Creating account...' : 'Signing you in...'}
-                  </CustomText>
-                </View>
+                  {registerMutation.isPending && (
+                    <View style={styles.loadingContainer}>
+                      <CustomText color={COLORS.grey} style={styles.loadingText}>
+                        Creating account...
+                      </CustomText>
+                    </View>
+                  )}
+
+                  <View style={styles.loginLinkContainer}>
+                    <CustomText color={COLORS.grey} style={styles.loginLinkText}>
+                      Already have an account?{' '}
+                    </CustomText>
+                    <TouchableOpacity onPress={() => router.push('/auth/login')}>
+                      <CustomText color={COLORS.primary} style={styles.loginLink}>
+                        Sign In
+                      </CustomText>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <CustomTextInput
+                    id="verificationCode"
+                    label="Verification Code"
+                    placeholder="Enter 6-digit code"
+                    formattedText={verificationCode}
+                    onChangeText={(text) => {
+                      // Only allow numbers and limit to 6 digits
+                      const numericText = text.replace(/[^0-9]/g, '').slice(0, 6);
+                      setVerificationCode(numericText);
+                      setVerificationError('');
+                      setGeneralError('');
+                    }}
+                    errorMessage={verificationError}
+                    keyboardType="number-pad"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    maxLength={6}
+                    returnKeyType="done"
+                    onSubmitEditing={handleVerification}
+                  />
+
+                  {generalError ? (
+                    <View style={styles.errorContainer}>
+                      <CustomText color={COLORS.red} style={styles.errorText}>
+                        {generalError}
+                      </CustomText>
+                    </View>
+                  ) : null}
+
+                  <CustomButton
+                    title="Verify"
+                    onPress={handleVerification}
+                    disabled={confirmMutation.isPending || loginMutation.isPending || verificationCode.length !== 6}
+                    style={styles.registerButton}
+                  />
+
+                  {(confirmMutation.isPending || loginMutation.isPending) && (
+                    <View style={styles.loadingContainer}>
+                      <CustomText color={COLORS.grey} style={styles.loadingText}>
+                        {confirmMutation.isPending ? 'Verifying...' : 'Signing you in...'}
+                      </CustomText>
+                    </View>
+                  )}
+                </>
               )}
-
-              <View style={styles.loginLinkContainer}>
-                <CustomText color={COLORS.grey} style={styles.loginLinkText}>
-                  Already have an account?{' '}
-                </CustomText>
-                <TouchableOpacity onPress={() => router.push('/auth/login')}>
-                  <CustomText color={COLORS.primary} style={styles.loginLink}>
-                    Sign In
-                  </CustomText>
-                </TouchableOpacity>
-              </View>
             </View>
           </View>
         </ScrollView>

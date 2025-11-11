@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { Platform } from 'react-native';
-import tokenStorage from './tokenStorage';
+import { fetchAuthSession } from 'aws-amplify/auth';
 import { API_URL } from '../constants/api';
 
 /**
@@ -44,10 +44,17 @@ class ApiClient {
   }
 
   private setupInterceptors(): void {
-    // Request interceptor - add auth token
+    // Request interceptor - add Cognito auth token
     this.client.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
-        const token = await tokenStorage.getAuthToken();
+        let token: string | null = null;
+        try {
+          const session = await fetchAuthSession();
+          token = session.tokens?.accessToken?.toString() || null;
+        } catch (error) {
+          console.warn('[ApiClient] Failed to get Cognito session:', error);
+        }
+
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -114,7 +121,6 @@ class ApiClient {
             }
           } catch (refreshError) {
             // Refresh failed - clear auth and redirect to login
-            await tokenStorage.clearAuthToken();
             // TODO: Navigate to login (will be handled by auth store)
             return Promise.reject(refreshError);
           }
@@ -141,10 +147,17 @@ class ApiClient {
    * Setup interceptors for upload client (with auth token)
    */
   private setupUploadInterceptors(client: AxiosInstance): void {
-    // Request interceptor - add auth token
+    // Request interceptor - add Cognito auth token
     client.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
-        const token = await tokenStorage.getAuthToken();
+        let token: string | null = null;
+        try {
+          const session = await fetchAuthSession();
+          token = session.tokens?.accessToken?.toString() || null;
+        } catch (error) {
+          console.warn('[ApiClient] Failed to get Cognito session for upload:', error);
+        }
+
         if (token && config.headers) {
           console.log('[ApiClient] Adding auth token to upload request:', config.url);
           config.headers.Authorization = `Bearer ${token}`;
@@ -202,7 +215,6 @@ class ApiClient {
             }
           } catch (refreshError) {
             console.error('[ApiClient] Token refresh failed:', refreshError);
-            await tokenStorage.clearAuthToken();
             return Promise.reject(refreshError);
           }
         }
@@ -229,33 +241,14 @@ class ApiClient {
 
     this.refreshTokenPromise = (async () => {
       try {
-        const refreshToken = await tokenStorage.getRefreshToken();
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
+        const session = await fetchAuthSession({ forceRefresh: true });
+        
+        if (!session.tokens?.accessToken) {
+          throw new Error('Failed to refresh access token');
         }
 
-        const response = await axios.post(
-          `${API_URL}/auth/refresh`,
-          { refreshToken },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        const { accessToken } = response.data;
-        await tokenStorage.setAuthToken(accessToken);
-        
-        // Update user data if provided
-        if (response.data.user) {
-          await tokenStorage.setUserData(response.data.user);
-        }
-        
-        return accessToken;
+        return session.tokens.accessToken.toString();
       } catch (error) {
-        await tokenStorage.clearAuthToken();
-        await tokenStorage.clearRefreshToken();
         throw error;
       } finally {
         this.refreshTokenPromise = null;
@@ -266,7 +259,8 @@ class ApiClient {
   }
 
   public async setAuthToken(token: string): Promise<void> {
-    await tokenStorage.setAuthToken(token);
+    // No-op for Cognito - tokens are managed by Amplify
+    console.warn('[ApiClient] setAuthToken called but Cognito manages tokens automatically');
   }
 
   public getClient(): AxiosInstance {

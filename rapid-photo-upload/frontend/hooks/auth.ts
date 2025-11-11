@@ -1,9 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
-import apiClient from '../services/apiClient';
 import { useAppDispatch } from './redux';
 import { setAuth, clearAuth } from '../store/authSlice';
-import { User } from '../types';
-import tokenStorage from '../services/tokenStorage';
+import { cognitoAuthService } from '../services/cognito/authService';
 
 interface LoginRequest {
   email: string;
@@ -23,30 +21,14 @@ interface LoginResponse {
 }
 
 /**
- * React Query hooks for authentication operations.
+ * React Query hooks for authentication operations using AWS Cognito.
  */
 export const useLogin = () => {
   const dispatch = useAppDispatch();
   
   return useMutation<LoginResponse, Error, LoginRequest>({
     mutationFn: async (credentials) => {
-      const response = await apiClient.post('/auth/login', credentials);
-      const data = response.data;
-      
-      // Validate response structure
-      if (!data || typeof data !== 'object') {
-        throw new Error('Invalid response format from server');
-      }
-      
-      if (!data.user || !data.accessToken) {
-        throw new Error('Missing required fields in login response');
-      }
-      
-      if (!data.user.id || !data.user.username || !data.user.email) {
-        throw new Error('Invalid user data in login response');
-      }
-      
-      return data;
+      return await cognitoAuthService.login(credentials);
     },
     onSuccess: (data) => {
       dispatch(setAuth({
@@ -57,8 +39,6 @@ export const useLogin = () => {
         },
         token: data.accessToken,
       }));
-      // Store refresh token separately (could use httpOnly cookie in production)
-      tokenStorage.setRefreshToken(data.refreshToken).catch(console.error);
     },
   });
 };
@@ -68,11 +48,10 @@ export const useLogout = () => {
   
   return useMutation({
     mutationFn: async () => {
-      await apiClient.post('/auth/logout');
+      await cognitoAuthService.logout();
     },
     onSuccess: () => {
       dispatch(clearAuth());
-      tokenStorage.clearRefreshToken().catch(console.error);
     },
   });
 };
@@ -80,34 +59,31 @@ export const useLogout = () => {
 export const useRegister = () => {
   return useMutation({
     mutationFn: async (data: { username: string; email: string; password: string }) => {
-      console.log('[useRegister] Making registration request to /auth/register');
+      console.log('[useRegister] Making registration request to Cognito');
       try {
-        const response = await apiClient.post('/auth/register', data);
-        const responseData = response.data;
-        
-        // Validate response is JSON, not HTML
-        if (typeof responseData === 'string' && (
-          responseData.trim().startsWith('<!DOCTYPE') ||
-          responseData.trim().startsWith('<html')
-        )) {
-          throw new Error('Server returned HTML instead of JSON. Please check server configuration.');
-        }
-        
-        console.log('[useRegister] Registration response received:', {
-          status: response.status,
-          data: responseData,
-        });
-        return responseData;
+        const response = await cognitoAuthService.register(data);
+        console.log('[useRegister] Registration response received:', response);
+        return response;
       } catch (error: any) {
         console.error('[useRegister] Registration request failed:', {
           message: error?.message,
-          code: error?.code,
-          response: error?.response ? {
-            status: error.response.status,
-            data: typeof error.response.data === 'string' 
-              ? error.response.data.substring(0, 200) 
-              : error.response.data,
-          } : null,
+        });
+        throw error;
+      }
+    },
+  });
+};
+
+export const useConfirmRegistration = () => {
+  return useMutation({
+    mutationFn: async (data: { email: string; confirmationCode: string }) => {
+      console.log('[useConfirmRegistration] Confirming registration');
+      try {
+        await cognitoAuthService.confirmRegistration(data.email, data.confirmationCode);
+        console.log('[useConfirmRegistration] Registration confirmed successfully');
+      } catch (error: any) {
+        console.error('[useConfirmRegistration] Confirmation failed:', {
+          message: error?.message,
         });
         throw error;
       }
@@ -120,29 +96,24 @@ export const useRefreshToken = () => {
   
   return useMutation({
     mutationFn: async () => {
-      const refreshToken = await tokenStorage.getRefreshToken();
-      
-      if (!refreshToken) {
-        throw new Error('No refresh token available');
-      }
-      
-      const response = await apiClient.post('/auth/refresh', {
-        refreshToken,
-      });
-      return response.data;
+      return await cognitoAuthService.refreshToken();
     },
     onSuccess: (data) => {
       // Update auth state with new access token
       if (data.accessToken) {
-        dispatch(setAuth({
-          user: data.user || null,
-          token: data.accessToken,
-        }));
-        
-        // Update refresh token if provided
-        if (data.refreshToken) {
-          tokenStorage.setRefreshToken(data.refreshToken).catch(console.error);
-        }
+        // Get current user to update auth state
+        cognitoAuthService.getCurrentUser().then(user => {
+          if (user) {
+            dispatch(setAuth({
+              user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+              },
+              token: data.accessToken,
+            }));
+          }
+        }).catch(console.error);
       }
     },
   });
@@ -156,27 +127,30 @@ export const useValidateSession = () => {
   
   return useMutation({
     mutationFn: async () => {
-      // Attempt to fetch current user profile to validate session
-      const response = await apiClient.get('/auth/me');
-      return response.data;
+      const user = await cognitoAuthService.getCurrentUser();
+      const accessToken = await cognitoAuthService.getAccessToken();
+      
+      if (!user || !accessToken) {
+        throw new Error('No active session');
+      }
+      
+      return { user, accessToken };
     },
     onSuccess: (data) => {
       // Session is valid, update user data
-      const token = tokenStorage.getAuthToken();
-      if (token && data.user) {
-        dispatch(setAuth({
-          user: {
-            id: data.user.id,
-            username: data.user.username,
-            email: data.user.email,
-          },
-          token: data.user.token || token as any, // Use existing token
-        }));
-      }
+      dispatch(setAuth({
+        user: {
+          id: data.user.id,
+          username: data.user.username,
+          email: data.user.email,
+        },
+        token: data.accessToken,
+      }));
     },
     onError: async () => {
-      // Session is invalid, try to refresh
-      console.log('[useValidateSession] Session validation failed, attempting refresh...');
+      // Session is invalid
+      console.log('[useValidateSession] Session validation failed');
+      dispatch(clearAuth());
     },
   });
 };

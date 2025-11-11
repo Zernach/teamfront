@@ -80,15 +80,33 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("*"));
+        
+        // Allow localhost origins for development and production origins
+        configuration.setAllowedOriginPatterns(List.of(
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            // Allow S3 website origins
+            "http://teamfront-rapid-photo-upload-frontend.s3-website-us-west-1.amazonaws.com",
+            "https://teamfront-rapid-photo-upload-frontend.s3-website-us-west-1.amazonaws.com",
+            // Allow CloudFront distributions (any *.cloudfront.net)
+            "https://*.cloudfront.net"
+        ));
+        
+        // Allow all HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        
+        // Allow all headers
         configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(false);
+        
+        // Allow credentials (cookies, authorization headers)
+        configuration.setAllowCredentials(true);
+        
+        // Cache preflight requests for 1 hour
         configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-        logger.info("CORS configuration set up for all origins");
+        logger.info("CORS configuration set up for production and development origins");
         return source;
     }
     

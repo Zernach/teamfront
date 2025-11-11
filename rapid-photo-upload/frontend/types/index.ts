@@ -14,8 +14,10 @@ export interface Photo {
   fileSize: number;
   contentType: string;
   status: 'QUEUED' | 'UPLOADING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-  storageKey: string;
-  thumbnailStorageKey?: string;
+  url?: string; // Presigned URL for viewing (null if not yet uploaded)
+  storageKey?: string; // Storage key for the photo (null if not yet uploaded)
+  thumbnailStorageKey?: string; // Storage key for thumbnail (optional)
+  thumbnailUrl?: string; // Presigned URL for thumbnail (optional)
   uploadedAt: string;
   uploadedByUserId: string;
   tags: string[];

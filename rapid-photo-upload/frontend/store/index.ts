@@ -1,6 +1,6 @@
 import { configureStore, Middleware } from '@reduxjs/toolkit';
 import authReducer from './authSlice';
-import uploadReducer, { removeFromQueue, clearQueue } from './uploadSlice';
+import uploadReducer, { removeFromQueue, clearQueue, UploadState } from './uploadSlice';
 import fileStorage from '../services/fileStorage';
 import { revokePreviewUri } from '../utils';
 
@@ -8,8 +8,8 @@ import { revokePreviewUri } from '../utils';
 const fileStorageCleanupMiddleware: Middleware = (store) => (next) => (action) => {
   if (removeFromQueue.match(action)) {
     // Get the item before it's removed to clean up its preview URI
-    const state = store.getState();
-    const item = state.upload.queue.find((item) => item.id === action.payload.id);
+    const state = store.getState() as { upload: UploadState };
+    const item = state.upload.queue.find((queueItem) => queueItem.id === action.payload.id);
     if (item?.fileMetadata.previewUri) {
       revokePreviewUri(item.fileMetadata.previewUri);
     }
@@ -17,7 +17,7 @@ const fileStorageCleanupMiddleware: Middleware = (store) => (next) => (action) =
     fileStorage.remove(action.payload.id);
   } else if (clearQueue.match(action)) {
     // Clean up all preview URIs and files when queue is cleared
-    const state = store.getState();
+    const state = store.getState() as { upload: UploadState };
     state.upload.queue.forEach((item) => {
       if (item.fileMetadata.previewUri) {
         revokePreviewUri(item.fileMetadata.previewUri);
@@ -39,4 +39,3 @@ export const store = configureStore({
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
-

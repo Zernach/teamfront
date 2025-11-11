@@ -23,7 +23,7 @@ class WebSocketClient {
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
   private reconnectDelay: number = 1000;
-  private reconnectTimer: NodeJS.Timeout | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private messageHandlers: Map<string, Set<(data: any) => void>> = new Map();
   private token: string | undefined;
 
@@ -114,30 +114,18 @@ class WebSocketClient {
 
     // Route messages to appropriate handlers based on type and IDs
     if (message.type === 'job_progress' && message.jobId) {
-      const eventName = `job:${message.jobId}:progress`;
-      const handlers = this.messageHandlers.get(eventName);
-      if (handlers) {
-        handlers.forEach(callback => {
-          try {
-            callback(transformedMessage);
-          } catch (error) {
-            console.error('[WebSocket] Error in handler:', error);
-          }
-        });
-      }
+      this.emitToHandlers(`job:${message.jobId}:progress`, transformedMessage);
     }
 
-    if (message.type === 'photo_progress' && message.photoId) {
-      const eventName = `photo:${message.photoId}:progress`;
-      const handlers = this.messageHandlers.get(eventName);
-      if (handlers) {
-        handlers.forEach(callback => {
-          try {
-            callback(transformedMessage);
-          } catch (error) {
-            console.error('[WebSocket] Error in handler:', error);
-          }
-        });
+    if (message.type === 'photo_progress') {
+      // Forward per-photo updates to job listeners when possible so that job subscribers
+      // can react to individual photo progress events.
+      if (message.jobId) {
+        this.emitToHandlers(`job:${message.jobId}:progress`, transformedMessage);
+      }
+
+      if (message.photoId) {
+        this.emitToHandlers(`photo:${message.photoId}:progress`, transformedMessage);
       }
     }
   }
@@ -215,6 +203,19 @@ class WebSocketClient {
     this.messageHandlers.delete(eventName);
   }
 
+  private emitToHandlers(eventName: string, data: any) {
+    const handlers = this.messageHandlers.get(eventName);
+    if (handlers) {
+      handlers.forEach(callback => {
+        try {
+          callback(data);
+        } catch (error) {
+          console.error('[WebSocket] Error in handler:', error);
+        }
+      });
+    }
+  }
+
   getSocket(): WebSocket | null {
     return this.socket;
   }
@@ -268,4 +269,3 @@ class WebSocketClient {
 
 export const webSocketClient = new WebSocketClient();
 export default webSocketClient;
-

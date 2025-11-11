@@ -1,63 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useAppSelector, useAppDispatch } from '../../hooks/redux';
-import { updateProgress, markCompleted, markFailed } from '../../store/uploadSlice';
-import { useUploadPhoto, useUploadBatch } from '../../hooks/api';
+import { useAppSelector } from '../../hooks/redux';
 import { formatFileSize } from '../../utils';
-import webSocketClient from '../../services/webSocketClient';
 import { COLORS } from '../../constants/colors';
-import tokenStorage from '../../services/tokenStorage';
 
 export function UploadQueue() {
   const queue = useAppSelector((state) => state.upload.queue);
-  const activeJobId = useAppSelector((state) => state.upload.activeJobId);
-  const dispatch = useAppDispatch();
-  const uploadPhoto = useUploadPhoto();
-  const uploadBatch = useUploadBatch();
-
-  useEffect(() => {
-    // Connect WebSocket for real-time updates
-    const connectWebSocket = async () => {
-      const token = await tokenStorage.getAuthToken();
-      if (token) {
-        webSocketClient.connect(token);
-      }
-    };
-
-    connectWebSocket();
-
-    return () => {
-      webSocketClient.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    // Subscribe to job progress if activeJobId exists
-    if (activeJobId) {
-      const handleJobProgress = (data: any) => {
-        // Update individual photo progress
-        if (data.photoId && data.progress !== undefined) {
-          dispatch(updateProgress({ id: data.photoId, progress: data.progress }));
-        }
-
-        // Mark completed photos
-        if (data.photoId && data.status === 'completed') {
-          dispatch(markCompleted({ id: data.photoId }));
-        }
-
-        // Mark failed photos
-        if (data.photoId && data.status === 'failed') {
-          dispatch(markFailed({ id: data.photoId, error: data.error || 'Upload failed' }));
-        }
-      };
-
-      webSocketClient.subscribeToJobProgress(activeJobId, handleJobProgress);
-
-      return () => {
-        webSocketClient.unsubscribeFromJobProgress(activeJobId);
-      };
-    }
-  }, [activeJobId, dispatch]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -228,4 +176,3 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
-

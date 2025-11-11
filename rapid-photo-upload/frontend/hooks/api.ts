@@ -66,7 +66,7 @@ export const useUploadJob = (jobId: string) => {
   });
 };
 
-export const useUploadPhoto = () => {
+export const useUploadPhoto = (onProgress?: (progress: number, loaded: number, total: number) => void) => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -108,6 +108,13 @@ export const useUploadPhoto = () => {
           // Don't set Content-Type header - axios will set it automatically with boundary
           maxContentLength: Infinity,
           maxBodyLength: Infinity,
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total && onProgress) {
+              const progress = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+              console.log('[Upload] HTTP upload progress:', progress, '%', `(${progressEvent.loaded}/${progressEvent.total} bytes)`);
+              onProgress(progress, progressEvent.loaded, progressEvent.total);
+            }
+          },
         });
         console.log('[Upload] Upload successful:', {
           status: response.status,
@@ -148,7 +155,7 @@ export const useUploadPhoto = () => {
   });
 };
 
-export const useUploadBatch = () => {
+export const useUploadBatch = (onProgress?: (progress: number, loaded: number, total: number) => void) => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -234,6 +241,13 @@ export const useUploadBatch = () => {
           // Don't set Content-Type header - axios will set it automatically with boundary
           maxContentLength: Infinity,
           maxBodyLength: Infinity,
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total && onProgress) {
+              const progress = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+              console.log('[Upload] HTTP upload progress:', progress, '%', `(${progressEvent.loaded}/${progressEvent.total} bytes)`);
+              onProgress(progress, progressEvent.loaded, progressEvent.total);
+            }
+          },
         });
         const duration = Date.now() - startTime;
         console.log('[Upload] Batch upload successful:', {

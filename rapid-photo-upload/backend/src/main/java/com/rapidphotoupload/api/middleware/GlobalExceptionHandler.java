@@ -114,6 +114,10 @@ public class GlobalExceptionHandler {
         Exception ex,
         WebRequest request
     ) {
+        // Log the full exception for debugging
+        org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        logger.error("Unhandled exception occurred", ex);
+        
         ErrorResponse error = new ErrorResponse(
             "INTERNAL_SERVER_ERROR",
             "An unexpected error occurred",

@@ -44,17 +44,28 @@ export function PhotoGrid({ onPhotoPress }: PhotoGridProps) {
         return null;
       }
       
+      // Determine image URI - prefer thumbnail, fallback to main URL
+      const imageUri = item.thumbnailUrl || item.url;
+      
       return (
         <TouchableOpacity
           style={styles.photoCard}
           onPress={() => onPhotoPress?.(item)}
           activeOpacity={0.8}
         >
-          <Image
-            source={{ uri: item.thumbnailStorageKey || item.storageKey }}
-            style={styles.photoImage}
-            resizeMode="cover"
-          />
+          {imageUri ? (
+            <Image
+              source={{ uri: imageUri }}
+              style={styles.photoImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.placeholderContainer}>
+              <Text style={styles.placeholderText}>
+                {item.status === 'COMPLETED' ? 'No image' : item.status}
+              </Text>
+            </View>
+          )}
           <View style={styles.photoOverlay}>
             <Text style={styles.photoFilename} numberOfLines={1}>
               {item.filename || 'Untitled'}
@@ -209,5 +220,17 @@ const styles = StyleSheet.create({
   footer: {
     padding: 20,
     alignItems: 'center',
+  },
+  placeholderContainer: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: COLORS.background99,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: {
+    color: COLORS.grey,
+    fontSize: 12,
+    textAlign: 'center',
   },
 });

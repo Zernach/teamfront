@@ -9,8 +9,8 @@ import java.util.regex.Pattern;
 public final class Username {
     private static final int MIN_LENGTH = 3;
     private static final int MAX_LENGTH = 50;
-    // Allow letters, numbers, spaces, and common punctuation for full names
-    private static final Pattern VALID_PATTERN = Pattern.compile("^[a-zA-Z0-9_\\s\\-\\.']+$");
+    // Allow letters, numbers, and underscores only (standard username format)
+    private static final Pattern VALID_PATTERN = Pattern.compile("^[a-zA-Z0-9_]+$");
 
     private final String value;
 
@@ -25,7 +25,7 @@ public final class Username {
             );
         }
         if (!VALID_PATTERN.matcher(trimmed).matches()) {
-            throw new IllegalArgumentException("Full name can only contain letters, numbers, spaces, hyphens, periods, and apostrophes");
+            throw new IllegalArgumentException("Username can only contain letters, numbers, and underscores");
         }
         this.value = trimmed;
     }

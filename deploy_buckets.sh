@@ -44,4 +44,63 @@ for PROJECT in "${PROJECTS[@]}"; do
   fi
   
   echo "Next: Create CloudFront distribution using OAC ID: ${OAC_OUTPUT}"
+  
+  # Special case: rapid-photo-upload needs an additional bucket for uploaded images
+  if [ "$PROJECT" = "rapid-photo-upload" ]; then
+    IMAGES_BUCKET="teamfront-${PROJECT}-images"
+    echo "Setting up images bucket for ${PROJECT}..."
+    
+    # Create images bucket
+    aws s3 mb s3://${IMAGES_BUCKET} --region ${REGION} 2>/dev/null || echo "Images bucket may already exist"
+    
+    # Configure public access block for images (more restrictive)
+    aws s3api put-public-access-block \
+      --bucket ${IMAGES_BUCKET} \
+      --public-access-block-configuration \
+        "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=false,RestrictPublicBuckets=false"
+    
+    # Enable versioning for images bucket (optional, for data protection)
+    aws s3api put-bucket-versioning \
+      --bucket ${IMAGES_BUCKET} \
+      --versioning-configuration Status=Enabled
+    
+    # Configure CORS for images bucket
+    aws s3api put-bucket-cors \
+      --bucket ${IMAGES_BUCKET} \
+      --cors-configuration '{
+        "CORSRules": [
+          {
+            "AllowedOrigins": ["*"],
+            "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+            "AllowedHeaders": ["*"],
+            "ExposeHeaders": ["ETag"],
+            "MaxAgeSeconds": 3000
+          }
+        ]
+      }'
+    
+    # Configure lifecycle policy to manage storage costs (optional)
+    aws s3api put-bucket-lifecycle-configuration \
+      --bucket ${IMAGES_BUCKET} \
+      --lifecycle-configuration '{
+        "Rules": [
+          {
+            "ID": "Move to IA after 30 days",
+            "Filter": {},
+            "Status": "Enabled",
+            "Transitions": [
+              {
+                "Days": 30,
+                "StorageClass": "STANDARD_IA"
+              }
+            ],
+            "NoncurrentVersionExpiration": {
+              "NoncurrentDays": 90
+            }
+          }
+        ]
+      }'
+    
+    echo "Images bucket created: ${IMAGES_BUCKET}"
+  fi
 done

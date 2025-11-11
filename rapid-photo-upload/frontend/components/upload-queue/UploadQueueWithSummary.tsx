@@ -12,7 +12,7 @@ export function UploadQueueWithSummary() {
   const uploading = queue.filter((item) => item.status === 'uploading').length;
   const queued = queue.filter((item) => item.status === 'queued').length;
   
-  const totalSize = queue.reduce((sum, item) => sum + item.file.size, 0);
+  const totalSize = queue.reduce((sum, item) => sum + item.fileMetadata.size, 0);
   
   return (
     <View style={styles.container}>

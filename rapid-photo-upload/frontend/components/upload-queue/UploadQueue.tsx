@@ -102,7 +102,7 @@ export function UploadQueue() {
         <View key={item?.id} style={styles.queueItem}>
           <View style={styles.queueItemHeader}>
             <Text style={styles.fileName} numberOfLines={1}>
-              {item.file.name}
+              {item.fileMetadata.name}
             </Text>
             <View
               style={[
@@ -132,7 +132,7 @@ export function UploadQueue() {
             <Text style={styles.errorText}>{item.error}</Text>
           )}
 
-          <Text style={styles.fileSize}>{formatFileSize(item.file.size)}</Text>
+          <Text style={styles.fileSize}>{formatFileSize(item.fileMetadata.size)}</Text>
         </View>
       ))}
     </ScrollView>
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   statusText: {
-    color: COLORS.white,
+    color: COLORS.black,
     fontSize: 12,
     fontWeight: '600',
   },

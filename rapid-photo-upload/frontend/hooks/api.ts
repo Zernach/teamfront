@@ -154,9 +154,16 @@ export const useUploadBatch = () => {
   return useMutation({
     mutationFn: async (files: File[]) => {
       console.log('[Upload] Starting batch upload');
+      
+      // Calculate total size
+      const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+      const totalSizeMB = totalSize / (1024 * 1024);
+      const maxTotalSizeMB = 500; // Backend limit: 500MB
+      
       console.log('[Upload] Batch details:', {
         fileCount: files.length,
-        totalSize: files.reduce((sum, f) => sum + f.size, 0),
+        totalSize: totalSize,
+        totalSizeMB: totalSizeMB.toFixed(2),
         files: files.map(f => ({
           name: f.name,
           size: f.size,
@@ -164,6 +171,13 @@ export const useUploadBatch = () => {
           hasUri: 'uri' in f,
         })),
       });
+
+      // Validate total size (Issue 7: File Size Validation Mismatch)
+      if (totalSize > maxTotalSizeMB * 1024 * 1024) {
+        const error = `Total upload size (${totalSizeMB.toFixed(2)}MB) exceeds maximum allowed size (${maxTotalSizeMB}MB)`;
+        console.error('[Upload]', error);
+        throw new Error(error);
+      }
 
       const formData = new FormData();
       files.forEach((file, index) => {
@@ -179,8 +193,31 @@ export const useUploadBatch = () => {
         }
       });
 
-      // Calculate timeout based on number of files (5 minutes per file, max 30 minutes)
-      const timeoutMs = Math.min(300000 * files.length, 1800000);
+      // Verify FormData creation (Issue 3: FormData Multi-File Append)
+      const formDataEntries = Array.from(formData.entries());
+      const fileEntries = formDataEntries.filter(([key]) => key === 'files');
+      console.log('[Upload] FormData verification:', {
+        totalEntries: formDataEntries.length,
+        fileEntries: fileEntries.length,
+        expectedFiles: files.length,
+        matches: fileEntries.length === files.length,
+        entryKeys: formDataEntries.map(([key]) => key),
+      });
+
+      if (fileEntries.length !== files.length) {
+        console.error('[Upload] FormData file count mismatch!', {
+          expected: files.length,
+          actual: fileEntries.length,
+        });
+      }
+
+      // Calculate timeout based on file size and count (Issue 9: Timeout Calculation)
+      // Base timeout: 5 minutes minimum, or 2 seconds per MB of total size
+      const sizeBasedTimeout = Math.max(5 * 60 * 1000, totalSizeMB * 2000);
+      // Per-file timeout: 5 minutes per file, max 30 minutes
+      const countBasedTimeout = Math.min(300000 * files.length, 1800000);
+      // Use the larger of the two, capped at 30 minutes
+      const timeoutMs = Math.min(Math.max(sizeBasedTimeout, countBasedTimeout), 1800000);
       console.log('[Upload] Calculated timeout:', timeoutMs, 'ms (', timeoutMs / 60000, 'minutes)');
 
       // Use upload client with extended timeout

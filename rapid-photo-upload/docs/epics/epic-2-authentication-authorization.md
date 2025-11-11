@@ -11,15 +11,15 @@ Implement secure user authentication and authorization using JWT tokens. This in
 ## User Registration
 
 ### Requirements
-- Username: 3-50 characters, unique
-- Email: Valid email format, unique
-- Password: Minimum 8 characters with complexity requirements
+- Username: 3-50 characters, **NOT UNIQUE** (multiple users can share the same username)
+- Email: Valid email format, **UNIQUE** (only unique identifier)
+- Password: No complexity requirements, any non-empty password accepted
 - Password hashing using bcrypt (cost factor ≥ 10)
 
 ### Endpoints
 - `POST /auth/register` - Register new user
 - Returns: User ID, username, email, created timestamp
-- Errors: 400 (validation failure), 409 (username/email exists)
+- Errors: 400 (validation failure), 409 (email exists)
 
 ## User Authentication
 

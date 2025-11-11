@@ -61,8 +61,18 @@ class TokenStorage {
     await this.setItem('auth_token', token);
   }
 
+  async getUserData(): Promise<any | null> {
+    const userData = await this.getItem('user_data');
+    return userData ? JSON.parse(userData) : null;
+  }
+
+  async setUserData(user: any): Promise<void> {
+    await this.setItem('user_data', JSON.stringify(user));
+  }
+
   async clearAuthToken(): Promise<void> {
     await this.removeItem('auth_token');
+    await this.removeItem('user_data');
   }
 
   async getRefreshToken(): Promise<string | null> {

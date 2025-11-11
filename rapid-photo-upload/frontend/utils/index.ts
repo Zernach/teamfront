@@ -1,5 +1,7 @@
 // Utility functions for rapid-photo-upload frontend
 
+import { Platform } from 'react-native';
+
 /**
  * Format file size in bytes to human-readable string
  */
@@ -84,6 +86,47 @@ export function calculateProgress(loaded: number, total: number): number {
 }
 
 /**
+ * Generate a preview URI for a file that can be used to display the image
+ * Works on all platforms: web (blob URL), iOS/Android (file URI)
+ */
+export function generatePreviewUri(file: File): string | undefined {
+  // Handle React Native file objects (with uri property)
+  // Type assertion needed because File type doesn't include uri, but React Native files have it
+  const fileWithUri = file as File & { uri?: string };
+  
+  // Always check for uri property first - this indicates React Native
+  if (fileWithUri.uri) {
+    // React Native - use the uri directly for preview
+    return fileWithUri.uri;
+  }
+  
+  // Only create blob URLs on web platform
+  // React Native doesn't support URL.createObjectURL even if URL exists
+  if (Platform.OS === 'web' && typeof URL !== 'undefined' && URL.createObjectURL) {
+    try {
+      // Double-check it's actually a File instance (not a File-like object)
+      if (file instanceof File && !('uri' in file)) {
+        return URL.createObjectURL(file);
+      }
+    } catch (error) {
+      console.error('Error creating blob URL for preview:', error);
+      return undefined;
+    }
+  }
+  
+  return undefined;
+}
+
+/**
+ * Revoke a preview URI (cleanup blob URLs on web)
+ */
+export function revokePreviewUri(previewUri: string | undefined): void {
+  if (previewUri && typeof URL !== 'undefined' && URL.revokeObjectURL && previewUri.startsWith('blob:')) {
+    URL.revokeObjectURL(previewUri);
+  }
+}
+
+/**
  * Convert image picker result URI to File object (for React Native)
  * This function creates a File-like object that works in both web and React Native.
  * For React Native, it creates an object compatible with FormData.
@@ -114,8 +157,8 @@ export async function imagePickerResultToFile(
     
     const mimeType = getMimeType(name);
     
-    // Check if we're in a web environment (File API available)
-    if (typeof File !== 'undefined' && typeof Blob !== 'undefined') {
+    // Check platform - React Native doesn't support File API even if types exist
+    if (Platform.OS === 'web' && typeof File !== 'undefined' && typeof Blob !== 'undefined') {
       // Web environment - fetch and create proper File object
       try {
         const response = await fetch(uri);

@@ -1,21 +1,21 @@
 package com.rapidphotoupload.application.commands;
 
-import com.rapidphotoupload.domain.valueobjects.Username;
+import com.rapidphotoupload.domain.valueobjects.Email;
 
 /**
  * Command to authenticate a user and generate tokens.
  */
 public class LoginUserCommand implements Command {
-    private final Username username;
+    private final Email email;
     private final String password;
     
-    public LoginUserCommand(Username username, String password) {
-        this.username = username;
+    public LoginUserCommand(Email email, String password) {
+        this.email = email;
         this.password = password;
     }
     
-    public Username getUsername() {
-        return username;
+    public Email getEmail() {
+        return email;
     }
     
     public String getPassword() {

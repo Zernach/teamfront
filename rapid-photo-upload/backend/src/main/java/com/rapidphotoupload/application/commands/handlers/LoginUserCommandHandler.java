@@ -39,8 +39,8 @@ public class LoginUserCommandHandler implements CommandHandler<LoginUserCommand,
     
     @Override
     public CommandResult<AuthTokensDTO> handle(LoginUserCommand command) {
-        // Find user by username
-        User user = userRepository.findByUsername(command.getUsername())
+        // Find user by email (unique identifier)
+        User user = userRepository.findByEmail(command.getEmail())
                 .orElseThrow(() -> new ValidationException("Invalid credentials"));
         
         // Verify password

@@ -4,7 +4,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
- * Username value object with validation (3-50 characters, unique constraint enforced at repository level).
+ * Username value object with validation (3-50 characters, not unique).
  */
 public final class Username {
     private static final int MIN_LENGTH = 3;

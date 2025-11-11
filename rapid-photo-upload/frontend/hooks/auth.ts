@@ -6,7 +6,7 @@ import { User } from '../types';
 import tokenStorage from '../services/tokenStorage';
 
 interface LoginRequest {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -116,6 +116,8 @@ export const useRegister = () => {
 };
 
 export const useRefreshToken = () => {
+  const dispatch = useAppDispatch();
+  
   return useMutation({
     mutationFn: async () => {
       const refreshToken = await tokenStorage.getRefreshToken();
@@ -128,6 +130,53 @@ export const useRefreshToken = () => {
         refreshToken,
       });
       return response.data;
+    },
+    onSuccess: (data) => {
+      // Update auth state with new access token
+      if (data.accessToken) {
+        dispatch(setAuth({
+          user: data.user || null,
+          token: data.accessToken,
+        }));
+        
+        // Update refresh token if provided
+        if (data.refreshToken) {
+          tokenStorage.setRefreshToken(data.refreshToken).catch(console.error);
+        }
+      }
+    },
+  });
+};
+
+/**
+ * Hook to validate current session and fetch user profile
+ */
+export const useValidateSession = () => {
+  const dispatch = useAppDispatch();
+  
+  return useMutation({
+    mutationFn: async () => {
+      // Attempt to fetch current user profile to validate session
+      const response = await apiClient.get('/auth/me');
+      return response.data;
+    },
+    onSuccess: (data) => {
+      // Session is valid, update user data
+      const token = tokenStorage.getAuthToken();
+      if (token && data.user) {
+        dispatch(setAuth({
+          user: {
+            id: data.user.id,
+            username: data.user.username,
+            email: data.user.email,
+          },
+          token: data.user.token || token as any, // Use existing token
+        }));
+      }
+    },
+    onError: async () => {
+      // Session is invalid, try to refresh
+      console.log('[useValidateSession] Session validation failed, attempting refresh...');
     },
   });
 };

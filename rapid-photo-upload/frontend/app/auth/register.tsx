@@ -72,11 +72,6 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (password.length < 8) {
-      setPasswordError('Password must be at least 8 characters');
-      return;
-    }
-
     if (password !== confirmPassword) {
       setConfirmPasswordError('Passwords do not match');
       return;
@@ -99,7 +94,7 @@ export default function RegisterScreen() {
       
       // Automatically log in the user after successful registration
       await loginMutation.mutateAsync({
-        username: username.trim(),
+        email: email.trim(),
         password,
       });
       

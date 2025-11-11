@@ -16,7 +16,7 @@ public class UserEntity {
     @Column(name = "id", columnDefinition = "UUID")
     private UUID id;
 
-    @Column(name = "username", nullable = false, unique = true, length = 50)
+    @Column(name = "username", nullable = false, length = 50)
     private String username;
 
     @Column(name = "email", nullable = false, unique = true, length = 255)

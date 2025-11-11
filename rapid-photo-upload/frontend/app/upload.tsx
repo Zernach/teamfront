@@ -19,7 +19,7 @@ export default function UploadScreen() {
       hasQueueItems,
       queueItems: queue.map(item => ({
         id: item.id,
-        fileName: item.file.name,
+        fileName: item.fileMetadata.name,
         status: item.status,
       })),
     });

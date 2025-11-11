@@ -2,11 +2,12 @@ import React, { useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useAppSelector, useAppDispatch } from '../../hooks/redux';
 import { useUploadBatch } from '../../hooks/api';
-import { setActiveJobId, markCompleted, markFailed, updateProgress } from '../../store/uploadSlice';
+import { setActiveJobId, markCompleted, markFailed, updateProgress, setPhotoIdMappings } from '../../store/uploadSlice';
 import { RootState } from '../../store';
 import { COLORS } from '../../constants/colors';
 import webSocketClient from '../../services/webSocketClient';
 import tokenStorage from '../../services/tokenStorage';
+import fileStorage from '../../services/fileStorage';
 
 interface WebSocketProgressData {
   photoId?: string;
@@ -55,13 +56,21 @@ export function UploadButton() {
       console.log('[UploadButton] Subscribing to job progress for jobId:', activeJobId);
       const handleJobProgress = (data: WebSocketProgressData) => {
         console.log('[UploadButton] Received WebSocket progress update:', data);
-        // Update individual photo progress
+        
+        // Issue 5: Better ID mapping - Use photoId first, then fallback to filename
         if (data.photoId && data.progress !== undefined) {
-          // Find the queue item by matching file name or ID
-          const queueItem = queue.find((item: QueueItem) => {
-            // Try to match by photoId if we have a mapping, or by filename
-            return item.file.name === data.filename || item?.id === data.photoId;
-          });
+          // First try to find by photoId (most reliable)
+          let queueItem = queue.find((item: QueueItem) => item.photoId === data.photoId);
+          
+          // Fallback to filename if photoId not found
+          if (!queueItem && data.filename) {
+            queueItem = queue.find((item: QueueItem) => item.fileMetadata.name === data.filename);
+          }
+          
+          // Last resort: match by uploadId (shouldn't happen, but handle it)
+          if (!queueItem) {
+            queueItem = queue.find((item: QueueItem) => item.id === data.photoId);
+          }
 
           if (queueItem) {
             console.log('[UploadButton] Updating progress for queue item:', queueItem.id, 'to', data.progress);
@@ -70,16 +79,21 @@ export function UploadButton() {
             console.warn('[UploadButton] Could not find queue item for progress update:', {
               photoId: data.photoId,
               filename: data.filename,
-              queueItems: queue.map(item => ({ id: item.id, filename: item.file.name })),
+              queueItems: queue.map(item => ({ 
+                id: item.id, 
+                photoId: item.photoId,
+                filename: item.fileMetadata.name 
+              })),
             });
           }
         }
 
         // Mark completed photos
         if (data.photoId && data.status === 'completed') {
-          const queueItem = queue.find((item: QueueItem) =>
-            item.file.name === data.filename || item?.id === data.photoId
-          );
+          let queueItem = queue.find((item: QueueItem) => item.photoId === data.photoId);
+          if (!queueItem && data.filename) {
+            queueItem = queue.find((item: QueueItem) => item.fileMetadata.name === data.filename);
+          }
           if (queueItem) {
             console.log('[UploadButton] Marking queue item as completed:', queueItem.id);
             dispatch(markCompleted({ id: queueItem.id }));
@@ -88,9 +102,10 @@ export function UploadButton() {
 
         // Mark failed photos
         if (data.photoId && data.status === 'failed') {
-          const queueItem = queue.find((item: QueueItem) =>
-            item.file.name === data.filename || item?.id === data.photoId
-          );
+          let queueItem = queue.find((item: QueueItem) => item.photoId === data.photoId);
+          if (!queueItem && data.filename) {
+            queueItem = queue.find((item: QueueItem) => item.fileMetadata.name === data.filename);
+          }
           if (queueItem) {
             console.log('[UploadButton] Marking queue item as failed:', queueItem.id, data.error);
             dispatch(markFailed({ id: queueItem.id, error: data.error || 'Upload failed' }));
@@ -125,7 +140,31 @@ export function UploadButton() {
     }
 
     try {
-      const files = queuedFiles.map((item) => item.file);
+      // Issue 4: WebSocket Connection Timing - Connect and wait before upload
+      console.log('[UploadButton] Ensuring WebSocket is connected before upload');
+      const token = await tokenStorage.getAuthToken();
+      if (token) {
+        try {
+          await webSocketClient.connectAndWait(token, 10000); // 10 second timeout
+          console.log('[UploadButton] WebSocket connected successfully');
+        } catch (wsError) {
+          console.warn('[UploadButton] WebSocket connection failed, continuing with upload:', wsError);
+          // Continue with upload even if WebSocket fails - progress updates may be delayed
+        }
+      } else {
+        console.warn('[UploadButton] No auth token for WebSocket, continuing with upload');
+      }
+
+      // Retrieve files from file storage using upload IDs
+      const uploadIds = queuedFiles.map((item) => item.id);
+      const files = fileStorage.getMany(uploadIds);
+      
+      if (files.length !== queuedFiles.length) {
+        const missingFiles = queuedFiles.filter((item) => !fileStorage.has(item.id));
+        console.error('[UploadButton] Missing files in storage:', missingFiles.map(item => item.id));
+        throw new Error(`Failed to retrieve ${missingFiles.length} file(s) from storage`);
+      }
+      
       console.log('[UploadButton] Preparing to upload files:', files.map(f => ({
         name: f.name,
         size: f.size,
@@ -136,6 +175,19 @@ export function UploadButton() {
       const result = await uploadBatch.mutateAsync(files);
       console.log('[UploadButton] Upload batch mutation completed:', result);
 
+      // Issue 5: Store photoId mappings from response
+      if (result.photoIds && Array.isArray(result.photoIds) && result.photoIds.length > 0) {
+        const mappings = uploadIds.map((uploadId, index) => ({
+          uploadId,
+          photoId: result.photoIds[index] || '',
+        })).filter(m => m.photoId); // Only include valid mappings
+        
+        if (mappings.length > 0) {
+          console.log('[UploadButton] Storing photoId mappings:', mappings);
+          dispatch(setPhotoIdMappings({ mappings }));
+        }
+      }
+
       // Set active job ID for WebSocket updates
       if (result.jobId) {
         console.log('[UploadButton] Setting active job ID:', result.jobId);
@@ -144,8 +196,7 @@ export function UploadButton() {
         console.warn('[UploadButton] No jobId in response, progress tracking may be limited');
       }
 
-      // If the API doesn't return a jobId, we'll need to handle progress differently
-      // For now, mark all as uploading
+      // Mark all queued files as uploading
       console.log('[UploadButton] Marking all queued files as uploading');
       queuedFiles.forEach((item: QueueItem) => {
         dispatch(updateProgress({ id: item?.id, progress: 0 }));
@@ -166,10 +217,10 @@ export function UploadButton() {
       // Mark all queued files as failed
       console.log('[UploadButton] Marking all queued files as failed');
       queuedFiles.forEach((item: QueueItem) => {
-        dispatch(markFailed({ id: item?.id, error: 'Failed to start upload' }));
+        dispatch(markFailed({ id: item?.id, error: errorMessage }));
       });
     }
-  }, [hasQueuedFiles, queuedFiles, uploadBatch, dispatch]);
+  }, [hasQueuedFiles, queuedFiles, uploadBatch, dispatch, queue]);
 
   if (!hasQueuedFiles && !isUploading) {
     return null;

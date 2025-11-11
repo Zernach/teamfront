@@ -97,8 +97,13 @@ class ApiClient {
       async (error: AxiosError) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-        // Handle 401 Unauthorized - attempt token refresh
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Don't attempt token refresh for auth endpoints (login, register, refresh)
+        const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
+                               originalRequest.url?.includes('/auth/register') ||
+                               originalRequest.url?.includes('/auth/refresh');
+
+        // Handle 401 Unauthorized - attempt token refresh (but not for auth endpoints)
+        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
           originalRequest._retry = true;
 
           try {
@@ -178,8 +183,13 @@ class ApiClient {
         });
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-        // Handle 401 Unauthorized - attempt token refresh
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Don't attempt token refresh for auth endpoints (login, register, refresh)
+        const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
+                               originalRequest.url?.includes('/auth/register') ||
+                               originalRequest.url?.includes('/auth/refresh');
+
+        // Handle 401 Unauthorized - attempt token refresh (but not for auth endpoints)
+        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
           console.log('[ApiClient] 401 Unauthorized, attempting token refresh');
           originalRequest._retry = true;
 
@@ -236,6 +246,12 @@ class ApiClient {
 
         const { accessToken } = response.data;
         await tokenStorage.setAuthToken(accessToken);
+        
+        // Update user data if provided
+        if (response.data.user) {
+          await tokenStorage.setUserData(response.data.user);
+        }
+        
         return accessToken;
       } catch (error) {
         await tokenStorage.clearAuthToken();

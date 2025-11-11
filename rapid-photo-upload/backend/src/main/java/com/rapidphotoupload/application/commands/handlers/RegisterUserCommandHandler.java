@@ -26,17 +26,12 @@ public class RegisterUserCommandHandler implements CommandHandler<RegisterUserCo
     
     @Override
     public CommandResult<UserId> handle(RegisterUserCommand command) {
-        // Validate username uniqueness
-        if (userRepository.existsByUsername(command.getUsername())) {
-            throw new ValidationException("Username already exists");
-        }
-        
-        // Validate email uniqueness
+        // Validate email uniqueness (only unique identifier)
         if (userRepository.existsByEmail(command.getEmail())) {
             throw new ValidationException("Email already exists");
         }
         
-        // Validate password
+        // Validate password (basic check only)
         validatePassword(command.getPassword());
         
         // Hash password
@@ -64,24 +59,8 @@ public class RegisterUserCommandHandler implements CommandHandler<RegisterUserCo
     }
     
     private void validatePassword(String password) {
-        if (password == null || password.length() < 8) {
-            throw new ValidationException("Password must be at least 8 characters");
-        }
-        
-        boolean hasUpperCase = false;
-        boolean hasLowerCase = false;
-        boolean hasDigit = false;
-        boolean hasSpecialChar = false;
-        
-        for (char c : password.toCharArray()) {
-            if (Character.isUpperCase(c)) hasUpperCase = true;
-            if (Character.isLowerCase(c)) hasLowerCase = true;
-            if (Character.isDigit(c)) hasDigit = true;
-            if (!Character.isLetterOrDigit(c)) hasSpecialChar = true;
-        }
-        
-        if (!hasUpperCase || !hasLowerCase || !hasDigit || !hasSpecialChar) {
-            throw new ValidationException("Password must contain uppercase, lowercase, digit, and special character");
+        if (password == null || password.isEmpty()) {
+            throw new ValidationException("Password cannot be empty");
         }
     }
     

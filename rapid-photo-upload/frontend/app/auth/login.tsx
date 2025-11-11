@@ -12,9 +12,9 @@ import { PADDING } from '../../constants/styles/commonStyles';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [usernameError, setUsernameError] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [generalError, setGeneralError] = useState('');
 
@@ -28,15 +28,25 @@ export default function LoginScreen() {
     }
   }, [isAuthenticated, router]);
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleLogin = async () => {
     // Reset errors
-    setUsernameError('');
+    setEmailError('');
     setPasswordError('');
     setGeneralError('');
 
     // Validation
-    if (!username.trim()) {
-      setUsernameError('Username is required');
+    if (!email.trim()) {
+      setEmailError('Email is required');
+      return;
+    }
+
+    if (!validateEmail(email.trim())) {
+      setEmailError('Please enter a valid email address');
       return;
     }
 
@@ -47,7 +57,7 @@ export default function LoginScreen() {
 
     try {
       await loginMutation.mutateAsync({
-        username: username.trim(),
+        email: email.trim(),
         password,
       });
       // Navigation will happen via useEffect when isAuthenticated changes
@@ -76,16 +86,17 @@ export default function LoginScreen() {
 
             <View style={styles.form}>
               <CustomTextInput
-                id="username"
-                label="Username"
-                placeholder="Enter your username"
-                formattedText={username}
+                id="email"
+                label="Email"
+                placeholder="Enter your email"
+                formattedText={email}
                 onChangeText={(text) => {
-                  setUsername(text);
-                  setUsernameError('');
+                  setEmail(text);
+                  setEmailError('');
                   setGeneralError('');
                 }}
-                errorMessage={usernameError}
+                errorMessage={emailError}
+                keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="next"

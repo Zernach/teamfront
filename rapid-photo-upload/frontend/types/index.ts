@@ -54,3 +54,9 @@ export interface ApiError {
   path: string;
 }
 
+export interface BatchUploadResponse {
+  jobId: string;
+  totalPhotos: number;
+  photoIds: string[];
+}
+

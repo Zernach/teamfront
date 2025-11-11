@@ -1,77 +1,94 @@
-import React, { useState, useCallback } from 'react';
-import { View, Image, StyleSheet, TouchableOpacity, Text, Platform } from 'react-native';
+import React, { useCallback, useEffect } from 'react';
+import { View, Image, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { FileSelection } from './FileSelection';
-import { useAppSelector } from '../../hooks/redux';
+import { useAppSelector, useAppDispatch } from '../../hooks/redux';
+import { removeFromQueue } from '../../store/uploadSlice';
+import { revokePreviewUri } from '../../utils';
 import { COLORS } from '../../constants/colors';
 
 export function FileSelectionWithPreview() {
-  const [previews, setPreviews] = useState<Map<string, string>>(new Map());
   const queue = useAppSelector((state) => state.upload.queue);
+  const dispatch = useAppDispatch();
+  
+  // Get queued items (items that haven't been uploaded yet)
+  const queuedItems = queue.filter((item) => 
+    item.status === 'queued' || item.status === 'failed'
+  );
 
-  const handleFilesSelected = useCallback((files: File[]) => {
-    // Generate previews for selected files
-    const newPreviews = new Map(previews);
-    files.forEach((file) => {
-      let previewUrl: string;
-      
-      // Handle React Native file objects (with uri property) vs web File objects
-      if ('uri' in file && file.uri) {
-        // React Native - use the uri directly
-        previewUrl = file.uri;
-      } else {
-        // Web - create object URL
-        if (Platform.OS === 'web' && typeof URL !== 'undefined' && URL.createObjectURL) {
-          previewUrl = URL.createObjectURL(file);
-        } else {
-          // Fallback - use file name as key only
-          previewUrl = `file://${file.name}`;
+  // Cleanup blob URLs when items are removed from queue
+  useEffect(() => {
+    return () => {
+      // Cleanup all blob URLs when component unmounts
+      queue.forEach((item) => {
+        if (item.fileMetadata.previewUri) {
+          revokePreviewUri(item.fileMetadata.previewUri);
         }
-      }
-      
-      newPreviews.set(file.name, previewUrl);
-    });
-    setPreviews(newPreviews);
-  }, [previews]);
+      });
+    };
+  }, []); // Only run on unmount
 
-  const removePreview = useCallback((fileName: string) => {
-    const url = previews.get(fileName);
-    if (url) {
-      // Only revoke object URLs on web
-      if (Platform.OS === 'web' && typeof URL !== 'undefined' && URL.revokeObjectURL && url.startsWith('blob:')) {
-        URL.revokeObjectURL(url);
-      }
+  const handleRemove = useCallback((uploadId: string, previewUri?: string) => {
+    // Revoke blob URL if it exists
+    if (previewUri) {
+      revokePreviewUri(previewUri);
     }
-    const newPreviews = new Map(previews);
-    newPreviews.delete(fileName);
-    setPreviews(newPreviews);
-  }, [previews]);
+    // Remove from queue (this will also clean up file storage via middleware)
+    dispatch(removeFromQueue({ id: uploadId }));
+  }, [dispatch]);
 
   return (
     <View style={styles.container}>
       <FileSelection
         maxFiles={100}
         maxFileSizeMB={50}
-        onFilesSelected={handleFilesSelected}
       />
       
-      {previews.size > 0 && (
+      {queuedItems.length > 0 && (
         <View style={styles.previewContainer}>
-          <Text style={styles.previewTitle}>Selected Files ({previews.size})</Text>
+          <Text style={styles.previewTitle}>Selected Files ({queuedItems.length})</Text>
           <View style={styles.previewGrid}>
-            {Array.from(previews.entries()).map(([fileName, url]) => (
-              <View key={fileName} style={styles.previewItem}>
-                <Image source={{ uri: url }} style={styles.previewImage} />
-                <Text style={styles.previewFileName} numberOfLines={1}>
-                  {fileName}
-                </Text>
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => removePreview(fileName)}
-                >
-                  <Text style={styles.removeButtonText}>Remove</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
+            {queuedItems.map((item) => {
+              const previewUri = item.fileMetadata.previewUri;
+              
+              if (!previewUri) {
+                // Fallback: show placeholder if no preview URI
+                return (
+                  <View key={item.id} style={styles.previewItem}>
+                    <View style={[styles.previewImage, styles.placeholderImage]}>
+                      <Text style={styles.placeholderText}>No Preview</Text>
+                    </View>
+                    <Text style={styles.previewFileName} numberOfLines={1}>
+                      {item.fileMetadata.name}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() => handleRemove(item.id, previewUri)}
+                    >
+                      <Text style={styles.removeButtonText}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              }
+              
+              return (
+                <View key={item.id} style={styles.previewItem}>
+                  <Image 
+                    source={{ uri: previewUri }} 
+                    style={styles.previewImage}
+                    resizeMode="cover"
+                  />
+                  <Text style={styles.previewFileName} numberOfLines={1}>
+                    {item.fileMetadata.name}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => handleRemove(item.id, previewUri)}
+                  >
+                    <Text style={styles.removeButtonText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
           </View>
         </View>
       )}
@@ -125,6 +142,15 @@ const styles = StyleSheet.create({
   removeButtonText: {
     color: COLORS.white,
     fontSize: 12,
+  },
+  placeholderImage: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.tan50,
+  },
+  placeholderText: {
+    color: COLORS.grey,
+    fontSize: 10,
   },
 });
 

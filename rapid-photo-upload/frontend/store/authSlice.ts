@@ -26,8 +26,9 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.isAuthenticated = true;
       
-      // Persist token to storage (web: localStorage, native: AsyncStorage)
+      // Persist both token and user data to storage (web: localStorage, native: AsyncStorage)
       tokenStorage.setAuthToken(action.payload.token).catch(console.error);
+      tokenStorage.setUserData(action.payload.user).catch(console.error);
     },
     clearAuth: (state) => {
       state.user = null;

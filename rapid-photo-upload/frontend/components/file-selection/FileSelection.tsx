@@ -1,10 +1,11 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, ActivityIndicator, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { isValidImageFile, isValidFileSize, generateUploadId, imagePickerResultToFile } from '../../utils';
+import { isValidImageFile, isValidFileSize, generateUploadId, imagePickerResultToFile, generatePreviewUri } from '../../utils';
 import { useAppDispatch } from '../../hooks/redux';
 import { addToQueue } from '../../store/uploadSlice';
 import { COLORS } from '../../constants/colors';
+import fileStorage from '../../services/fileStorage';
 
 interface FileSelectionProps {
   maxFiles?: number;
@@ -65,6 +66,12 @@ export function FileSelection({
         totalFiles: fileArray.length,
         validFiles: validFiles.length,
         errors: errors.length,
+        validFileDetails: validFiles.map(f => ({
+          name: f.name,
+          size: f.size,
+          type: f.type,
+          hasUri: 'uri' in f,
+        })),
       });
 
       // Add valid files to upload queue
@@ -75,7 +82,24 @@ export function FileSelection({
           fileName: file.name,
           fileSize: file.size,
         });
-        dispatch(addToQueue({ id: uploadId, file }));
+        
+        // Store file in file storage (outside Redux)
+        fileStorage.set(uploadId, file);
+        
+        // Generate preview URI for the file
+        const previewUri = generatePreviewUri(file);
+        
+        // Extract file metadata for Redux
+        const fileMetadata = {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          uri: 'uri' in file ? (file as any).uri : undefined,
+          previewUri: previewUri,
+        };
+        
+        // Dispatch metadata to Redux
+        dispatch(addToQueue({ id: uploadId, fileMetadata }));
       });
 
       if (onFilesSelected) {

@@ -1,29 +1,40 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+export interface FileMetadata {
+  name: string;
+  size: number;
+  type: string;
+  uri?: string; // For React Native files (used for upload)
+  previewUri?: string; // URI for displaying preview (blob URL on web, uri on native)
+}
+
 export interface UploadState {
   queue: Array<{
     id: string;
-    file: File;
+    fileMetadata: FileMetadata;
     progress: number;
     status: 'queued' | 'uploading' | 'completed' | 'failed';
     error?: string;
+    photoId?: string; // Backend photo ID (UUID) - set after upload starts
   }>;
   activeJobId: string | null;
+  photoIdMapping: Record<string, string>; // Maps uploadId -> photoId
 }
 
 const initialState: UploadState = {
   queue: [],
   activeJobId: null,
+  photoIdMapping: {},
 };
 
 const uploadSlice = createSlice({
   name: 'upload',
   initialState,
   reducers: {
-    addToQueue: (state, action: PayloadAction<{ id: string; file: File }>) => {
+    addToQueue: (state, action: PayloadAction<{ id: string; fileMetadata: FileMetadata }>) => {
       state.queue.push({
         id: action.payload.id,
-        file: action.payload.file,
+        fileMetadata: action.payload.fileMetadata,
         progress: 0,
         status: 'queued',
       });
@@ -58,6 +69,33 @@ const uploadSlice = createSlice({
     clearQueue: (state) => {
       state.queue = [];
       state.activeJobId = null;
+      state.photoIdMapping = {};
+    },
+    // Issue 10: Error State Recovery - Retry mechanism
+    retryUpload: (state, action: PayloadAction<{ id: string }>) => {
+      const item = state.queue.find((i) => i.id === action.payload.id);
+      if (item && item.status === 'failed') {
+        item.status = 'queued';
+        item.error = undefined;
+        item.progress = 0;
+      }
+    },
+    // Issue 5: Upload ID vs Photo ID Mismatch - Store photoId mapping
+    setPhotoIdMapping: (state, action: PayloadAction<{ uploadId: string; photoId: string }>) => {
+      state.photoIdMapping[action.payload.uploadId] = action.payload.photoId;
+      const item = state.queue.find((i) => i.id === action.payload.uploadId);
+      if (item) {
+        item.photoId = action.payload.photoId;
+      }
+    },
+    setPhotoIdMappings: (state, action: PayloadAction<{ mappings: Array<{ uploadId: string; photoId: string }> }>) => {
+      action.payload.mappings.forEach(({ uploadId, photoId }) => {
+        state.photoIdMapping[uploadId] = photoId;
+        const item = state.queue.find((i) => i.id === uploadId);
+        if (item) {
+          item.photoId = photoId;
+        }
+      });
     },
   },
 });
@@ -70,6 +108,9 @@ export const {
   removeFromQueue,
   setActiveJobId,
   clearQueue,
+  retryUpload,
+  setPhotoIdMapping,
+  setPhotoIdMappings,
 } = uploadSlice.actions;
 export default uploadSlice.reducer;
 

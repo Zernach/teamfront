@@ -98,11 +98,11 @@ public class AuthController {
     
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
-        logger.info("Login request received for username: {}", request.getUsername());
+        logger.info("Login request received for email: {}", request.getEmail());
         try {
             // Create command
             LoginUserCommand command = new LoginUserCommand(
-                Username.from(request.getUsername()),
+                Email.from(request.getEmail()),
                 request.getPassword()
             );
             
@@ -113,7 +113,7 @@ public class AuthController {
                 AuthTokensDTO tokens = (AuthTokensDTO) success.data();
                 
                 // Get user info for response
-                User user = userRepository.findByUsername(command.getUsername())
+                User user = userRepository.findByEmail(command.getEmail())
                     .orElseThrow(() -> new RuntimeException("User not found after login"));
                 
                 AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(

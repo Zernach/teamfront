@@ -83,7 +83,8 @@ public class JpaUploadJobRepository implements UploadJobRepository {
         entity.setFailedPhotos(job.getFailedPhotos().getValue());
         entity.setStatus(job.getStatus().name());
         entity.setCreatedAt(job.getCreatedAt().getValue());
-        if (job.getCompletedAt().isCompleted()) {
+        // Null check: completedAt is null when job is first created
+        if (job.getCompletedAt() != null && job.getCompletedAt().isCompleted()) {
             entity.setCompletedAt(job.getCompletedAt().getValue());
         }
         return entity;

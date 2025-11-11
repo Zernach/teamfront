@@ -5,11 +5,11 @@ import { Screen } from '../../components/screen';
 import { CustomTextInput } from '../../components/custom-text-input/CustomTextInput';
 import { CustomButton } from '../../components/custom-button';
 import { CustomText } from '../../components/custom-text/CustomText';
-import { authApi, LoginRequest } from '../../services/api/authApi';
+import { authApi } from '../../services/api/authApi';
 import { useAppDispatch, useAppSelector } from '../../hooks/redux';
 import { setAuth } from '../../store/authSlice';
-import { Colors } from '../../constants/colors';
-import { Spacing } from '../../constants/spacing';
+import { COLORS } from '../../constants/colors';
+import { PADDING } from '../../constants/styles/commonStyles';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -146,7 +146,7 @@ export default function LoginScreen() {
 
               {generalError ? (
                 <View style={styles.errorContainer}>
-                  <CustomText color={Colors.error} style={styles.errorText}>
+                  <CustomText color={COLORS.error} style={styles.errorText}>
                     {generalError}
                   </CustomText>
                 </View>
@@ -161,18 +161,18 @@ export default function LoginScreen() {
 
               {isLoading && (
                 <View style={styles.loadingContainer}>
-                  <CustomText color={Colors.textSecondary} style={styles.loadingText}>
+                  <CustomText color={COLORS.textSecondary} style={styles.loadingText}>
                     Signing in...
                   </CustomText>
                 </View>
               )}
 
               <View style={styles.signupLinkContainer}>
-                <CustomText color={Colors.textSecondary} style={styles.signupLinkText}>
+                <CustomText color={COLORS.textSecondary} style={styles.signupLinkText}>
                   Don't have an account?{' '}
                 </CustomText>
                 <TouchableOpacity onPress={() => router.push('/auth/signup')}>
-                  <CustomText color={Colors.primary} style={styles.signupLink}>
+                  <CustomText color={COLORS.primary} style={styles.signupLink}>
                     Sign Up
                   </CustomText>
                 </TouchableOpacity>
@@ -187,7 +187,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.background,
+    backgroundColor: COLORS.background,
   },
   keyboardView: {
     flex: 1,
@@ -197,22 +197,22 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: Spacing.xl,
+    padding: PADDING * 2,
     justifyContent: 'center',
   },
   header: {
-    marginBottom: Spacing.xxl,
+    marginBottom: PADDING * 3,
     alignItems: 'center',
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: Spacing.sm,
+    color: COLORS.white,
+    marginBottom: PADDING,
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.textSecondary,
+    color: COLORS.grey,
   },
   form: {
     width: '100%',
@@ -220,20 +220,19 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   errorContainer: {
-    marginTop: Spacing.md,
-    marginBottom: Spacing.md,
+    marginTop: PADDING,
+    marginBottom: PADDING,
   },
   errorText: {
     fontSize: 14,
     textAlign: 'center',
   },
   loginButton: {
-    marginTop: Spacing.xl,
+    marginTop: PADDING * 2,
     width: '100%',
-    backgroundColor: Colors.primary,
   },
   loadingContainer: {
-    marginTop: Spacing.md,
+    marginTop: PADDING,
     alignItems: 'center',
   },
   loadingText: {
@@ -242,7 +241,7 @@ const styles = StyleSheet.create({
   signupLinkContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: Spacing.xl,
+    marginTop: PADDING * 2,
   },
   signupLinkText: {
     fontSize: 14,

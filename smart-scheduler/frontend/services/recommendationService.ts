@@ -1,7 +1,5 @@
-import Constants from 'expo-constants';
-import { Job, JobType, BaseLocation } from './jobService';
-
-const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+import { JobType, BaseLocation } from './jobService';
+import { apiClient } from './apiClient';
 
 export interface TimeSlot {
   startTime: string;
@@ -72,36 +70,15 @@ export interface CreateAssignmentResponse {
 }
 
 class RecommendationService {
-  private baseUrl: string;
-
-  constructor() {
-    this.baseUrl = API_BASE_URL;
-  }
-
   async getRecommendations(jobId: string, maxResults: number = 10): Promise<RecommendationResponse> {
-    const response = await fetch(`${this.baseUrl}/api/recommendations?jobId=${jobId}&maxResults=${maxResults}`);
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(error.message || 'Failed to get recommendations');
-    }
-    return response.json();
+    return apiClient.get<RecommendationResponse>('/api/recommendations', {
+      jobId,
+      maxResults: maxResults.toString(),
+    });
   }
 
   async createAssignment(data: CreateAssignmentRequest): Promise<CreateAssignmentResponse> {
-    const response = await fetch(`${this.baseUrl}/api/assignments`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(error.message || 'Failed to create assignment');
-    }
-
-    return response.json();
+    return apiClient.post<CreateAssignmentResponse>('/api/assignments', data);
   }
 }
 

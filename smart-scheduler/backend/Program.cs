@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using System.Data;
 using SmartScheduler.Data;
 using SmartScheduler.Services;
@@ -49,15 +48,25 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:8083",
-                "http://localhost:3000",
-                "http://localhost:19006", // Expo web default
-                "http://localhost:19000"   // Expo dev server
-            )
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
+        policy.SetIsOriginAllowed(origin =>
+        {
+            // Allow localhost origins
+            if (origin.StartsWith("http://localhost:", StringComparison.OrdinalIgnoreCase))
+                return true;
+            
+            // Allow S3 website origins
+            if (origin.Contains("teamfront-smart-scheduler-frontend.s3-website", StringComparison.OrdinalIgnoreCase))
+                return true;
+            
+            // Allow CloudFront distributions
+            if (origin.EndsWith(".cloudfront.net", StringComparison.OrdinalIgnoreCase))
+                return true;
+            
+            return false;
+        })
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 });
 
@@ -87,10 +96,24 @@ builder.Services.AddScoped<IDistanceService, DistanceService>();
 builder.Services.AddScoped<IScoringService, ScoringService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 
-// Configure JWT Authentication
-var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("Jwt:SecretKey is not configured");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "SmartScheduler";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "SmartScheduler";
+// Configure Cognito JWT Authentication
+// UserPoolId can be set via:
+// 1. AWS:Cognito:UserPoolId in appsettings.json (or environment-specific files)
+// 2. AWS_COGNITO_USER_POOL_ID environment variable (recommended)
+// Run ./deploy_auths.sh to get the User Pool ID
+var cognitoUserPoolId = builder.Configuration["AWS:Cognito:UserPoolId"] 
+    ?? Environment.GetEnvironmentVariable("AWS_COGNITO_USER_POOL_ID")
+    ?? throw new InvalidOperationException(
+        "AWS Cognito User Pool ID is not configured. " +
+        "Set AWS_COGNITO_USER_POOL_ID environment variable or configure AWS:Cognito:UserPoolId in appsettings.json. " +
+        "Run ./deploy_auths.sh to get the User Pool ID.");
+var cognitoRegion = builder.Configuration["AWS:Cognito:Region"] 
+    ?? Environment.GetEnvironmentVariable("AWS_COGNITO_REGION")
+    ?? "us-west-1";
+
+// Cognito JWKS endpoint: https://cognito-idp.{region}.amazonaws.com/{userPoolId}/.well-known/jwks.json
+var cognitoIssuer = $"https://cognito-idp.{cognitoRegion}.amazonaws.com/{cognitoUserPoolId}";
+var jwksUrl = $"{cognitoIssuer}/.well-known/jwks.json";
 
 builder.Services.AddAuthentication(options =>
 {
@@ -99,15 +122,36 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    options.Authority = cognitoIssuer;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
-        ValidateAudience = true,
+        ValidateAudience = false, // Cognito tokens don't always have audience
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtIssuer,
-        ValidAudience = jwtAudience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey))
+        ValidIssuer = cognitoIssuer,
+        // Cognito uses RS256, so we need to fetch JWKS
+        // The Authority property above will automatically fetch JWKS from the well-known endpoint
+    };
+    
+    // Configure metadata refresh
+    options.MetadataAddress = $"{cognitoIssuer}/.well-known/openid-configuration";
+    
+    // Handle token validation events
+    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning("Authentication failed: {Error}", context.Exception.Message);
+            return Task.CompletedTask;
+        },
+        OnTokenValidated = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogDebug("Token validated for user: {UserId}", context.Principal?.Identity?.Name);
+            return Task.CompletedTask;
+        }
     };
 });
 

@@ -19,6 +19,12 @@ if ! aws sts get-caller-identity &> /dev/null; then
 fi
 
 echo "Building smart-scheduler frontend for web..."
+
+# Set production environment variables for the build
+export EXPO_PUBLIC_ENV="production"
+export EXPO_PUBLIC_API_URL="https://teamfront-smart-scheduler-archlife.us-west-1.elasticbeanstalk.com"
+export EXPO_PUBLIC_WS_URL="https://teamfront-smart-scheduler-archlife.us-west-1.elasticbeanstalk.com"
+
 yarn install
 yarn build:web
 

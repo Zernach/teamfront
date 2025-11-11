@@ -41,8 +41,8 @@
     ],
     "scheme": "smart-scheduler",
     "extra": {
-      "EXPO_PUBLIC_COGNITO_USER_POOL_ID": "us-west-1_5kNwPlpbx",
-      "EXPO_PUBLIC_COGNITO_CLIENT_ID": "56iq8v0deq2cer2kq5e9jh44qq",
+      "EXPO_PUBLIC_COGNITO_USER_POOL_ID": "us-west-1_QVwwsuCzD",
+      "EXPO_PUBLIC_COGNITO_CLIENT_ID": "1kbtoicefa1mdmhdt5fico7i8s",
       "EXPO_PUBLIC_COGNITO_REGION": "us-west-1"
     }
   }

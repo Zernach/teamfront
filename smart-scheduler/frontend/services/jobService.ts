@@ -1,6 +1,4 @@
-import Constants from 'expo-constants';
-
-const API_BASE_URL = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+import { apiClient } from './apiClient';
 
 export enum JobType {
   Flooring = 1,
@@ -94,12 +92,6 @@ export interface PagedResult<T> {
 }
 
 class JobService {
-  private baseUrl: string;
-
-  constructor() {
-    this.baseUrl = API_BASE_URL;
-  }
-
   async getAll(params?: {
     search?: string;
     status?: JobStatus;
@@ -109,48 +101,24 @@ class JobService {
     page?: number;
     pageSize?: number;
   }): Promise<PagedResult<JobListItem>> {
-    const queryParams = new URLSearchParams();
-    if (params?.search) queryParams.append('search', params.search);
-    if (params?.status !== undefined) queryParams.append('status', params.status.toString());
-    if (params?.type !== undefined) queryParams.append('type', params.type.toString());
-    if (params?.startDate) queryParams.append('startDate', params.startDate);
-    if (params?.endDate) queryParams.append('endDate', params.endDate);
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+    const queryParams: Record<string, any> = {};
+    if (params?.search) queryParams.search = params.search;
+    if (params?.status !== undefined) queryParams.status = params.status.toString();
+    if (params?.type !== undefined) queryParams.type = params.type.toString();
+    if (params?.startDate) queryParams.startDate = params.startDate;
+    if (params?.endDate) queryParams.endDate = params.endDate;
+    if (params?.page) queryParams.page = params.page.toString();
+    if (params?.pageSize) queryParams.pageSize = params.pageSize.toString();
 
-    const response = await fetch(`${this.baseUrl}/api/jobs?${queryParams.toString()}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch jobs: ${response.statusText}`);
-    }
-    return response.json();
+    return apiClient.get<PagedResult<JobListItem>>('/api/jobs', queryParams);
   }
 
   async getById(id: string): Promise<Job> {
-    const response = await fetch(`${this.baseUrl}/api/jobs/${id}`);
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('Job not found');
-      }
-      throw new Error(`Failed to fetch job: ${response.statusText}`);
-    }
-    return response.json();
+    return apiClient.get<Job>(`/api/jobs/${id}`);
   }
 
   async create(data: CreateJobRequest): Promise<Job> {
-    const response = await fetch(`${this.baseUrl}/api/jobs`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(error.message || 'Failed to create job');
-    }
-
-    return response.json();
+    return apiClient.post<Job>('/api/jobs', data);
   }
 }
 

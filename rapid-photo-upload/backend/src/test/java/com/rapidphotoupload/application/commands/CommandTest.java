@@ -10,15 +10,36 @@ class CommandTest {
 
     @Test
     void shouldCreateUploadPhotoCommand() {
+        var photoId = PhotoId.generate();
         var filename = Filename.from("test.jpg");
         var fileSize = FileSize.from(1024);
         var contentType = ContentType.from("image/jpeg");
         var userId = UserId.generate();
         var jobId = JobId.generate();
 
-        var command = new UploadPhotoCommand(filename, fileSize, contentType, userId, jobId, Set.of("tag1"));
+        var command = new UploadPhotoCommand(photoId, filename, fileSize, contentType, userId, jobId, Set.of("tag1"));
 
         assertNotNull(command);
+        assertEquals(photoId, command.photoId());
+        assertEquals(filename, command.filename());
+        assertEquals(fileSize, command.fileSize());
+        assertEquals(contentType, command.contentType());
+        assertEquals(userId, command.userId());
+        assertEquals(jobId, command.jobId());
+    }
+    
+    @Test
+    void shouldCreateUploadPhotoCommandWithNullPhotoId() {
+        var filename = Filename.from("test.jpg");
+        var fileSize = FileSize.from(1024);
+        var contentType = ContentType.from("image/jpeg");
+        var userId = UserId.generate();
+        var jobId = JobId.generate();
+
+        var command = new UploadPhotoCommand(null, filename, fileSize, contentType, userId, jobId, Set.of("tag1"));
+
+        assertNotNull(command);
+        assertNull(command.photoId());
         assertEquals(filename, command.filename());
         assertEquals(fileSize, command.fileSize());
         assertEquals(contentType, command.contentType());

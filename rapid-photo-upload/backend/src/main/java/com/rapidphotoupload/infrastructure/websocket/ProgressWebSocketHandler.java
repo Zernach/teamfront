@@ -5,6 +5,8 @@ import com.rapidphotoupload.domain.events.PhotoUploadProgressed;
 import com.rapidphotoupload.domain.events.UploadJobProgressed;
 import com.rapidphotoupload.domain.repositories.PhotoRepository;
 import com.rapidphotoupload.domain.repositories.UploadJobRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -21,6 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class ProgressWebSocketHandler extends TextWebSocketHandler {
+    
+    private static final Logger logger = LoggerFactory.getLogger(ProgressWebSocketHandler.class);
     
     private final Map<String, WebSocketSession> userSessions = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -77,15 +81,27 @@ public class ProgressWebSocketHandler extends TextWebSocketHandler {
         });
     }
     
-    private void sendProgressUpdate(String userId, ProgressMessage message) {
+    /**
+     * Send progress update to a specific user.
+     * Made public so other components can send updates directly.
+     * Thread-safe to handle concurrent updates from async processors.
+     */
+    public synchronized void sendProgressUpdate(String userId, ProgressMessage message) {
         WebSocketSession session = userSessions.get(userId);
         if (session != null && session.isOpen()) {
             try {
-                String json = objectMapper.writeValueAsString(message);
-                session.sendMessage(new TextMessage(json));
+                // Synchronize on the session to prevent concurrent writes
+                synchronized (session) {
+                    String json = objectMapper.writeValueAsString(message);
+                    session.sendMessage(new TextMessage(json));
+                }
             } catch (IOException e) {
                 // Log error and remove session
+                logger.error("Failed to send WebSocket message to user {}: {}", userId, e.getMessage());
                 userSessions.remove(userId);
+            } catch (IllegalStateException e) {
+                // Handle concurrent write attempts gracefully
+                logger.warn("Concurrent WebSocket write detected for user {}: {}", userId, e.getMessage());
             }
         }
     }

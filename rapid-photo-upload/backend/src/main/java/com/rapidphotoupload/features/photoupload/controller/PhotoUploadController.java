@@ -8,6 +8,7 @@ import com.rapidphotoupload.application.commands.UploadPhotoCommand;
 import com.rapidphotoupload.application.commands.handlers.CommandDispatcher;
 import com.rapidphotoupload.domain.valueobjects.*;
 import com.rapidphotoupload.infrastructure.exceptions.ValidationException;
+import com.rapidphotoupload.infrastructure.storage.TemporaryFileStorage;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.io.IOException;
 
 /**
  * Controller for photo upload feature slice.
@@ -34,9 +36,13 @@ public class PhotoUploadController {
     private static final Logger logger = LoggerFactory.getLogger(PhotoUploadController.class);
     
     private final CommandDispatcher commandDispatcher;
+    private final TemporaryFileStorage temporaryFileStorage;
     
-    public PhotoUploadController(CommandDispatcher commandDispatcher) {
+    public PhotoUploadController(
+            CommandDispatcher commandDispatcher,
+            TemporaryFileStorage temporaryFileStorage) {
         this.commandDispatcher = commandDispatcher;
+        this.temporaryFileStorage = temporaryFileStorage;
     }
     
     /**
@@ -140,13 +146,27 @@ public class PhotoUploadController {
                         contentType = "image/jpeg"; // Default
                     }
                     
+                    // Generate PhotoId first so we can store the file
+                    PhotoId photoId = PhotoId.generate();
+                    
+                    // Store file in temporary storage before creating Photo entity
+                    try {
+                        temporaryFileStorage.store(photoId, file);
+                        logger.debug("Stored file temporarily for photo: {}", photoId.getValue());
+                    } catch (IOException e) {
+                        logger.error("Failed to store file temporarily: {}", e.getMessage(), e);
+                        errors.add(String.format("File %d (%s): Failed to store file", i + 1, filename));
+                        continue;
+                    }
+                    
                     // Create value objects
                     Filename filenameVO = Filename.from(filename);
                     FileSize fileSizeVO = FileSize.from(fileSize);
                     ContentType contentTypeVO = ContentType.from(contentType);
                     
-                    // Create upload photo command
+                    // Create upload photo command with PhotoId
                     UploadPhotoCommand uploadCommand = new UploadPhotoCommand(
+                        photoId, // Pass PhotoId so file can be retrieved later
                         filenameVO,
                         fileSizeVO,
                         contentTypeVO,
@@ -159,10 +179,12 @@ public class PhotoUploadController {
                     CommandResult<?> uploadResult = commandDispatcher.dispatch(uploadCommand);
                     
                     if (uploadResult instanceof CommandResult.Success<?> success) {
-                        PhotoId photoId = (PhotoId) success.data();
-                        photoIds.add(photoId.getValue().toString());
-                        logger.debug("Created photo {} for job {}", photoId.getValue(), jobId.getValue());
+                        PhotoId resultPhotoId = (PhotoId) success.data();
+                        photoIds.add(resultPhotoId.getValue().toString());
+                        logger.debug("Created photo {} for job {}", resultPhotoId.getValue(), jobId.getValue());
                     } else if (uploadResult instanceof CommandResult.Failure<?> failure) {
+                        // Clean up temporary storage on failure
+                        temporaryFileStorage.remove(photoId);
                         errors.add(String.format("File %d (%s): %s", i + 1, filename, failure.errorMessage()));
                         logger.warn("Failed to upload file {}: {}", filename, failure.errorMessage());
                     }
@@ -172,6 +194,8 @@ public class PhotoUploadController {
                         file.getOriginalFilename(), e.getMessage());
                     errors.add(errorMsg);
                     logger.error("Error processing file {}: {}", i + 1, e.getMessage(), e);
+                    // Clean up temporary storage on error (if PhotoId was generated)
+                    // Note: PhotoId might not exist if error occurred before generation
                 }
             }
             

@@ -12,6 +12,7 @@ import com.rapidphotoupload.domain.repositories.UserRepository;
 import com.rapidphotoupload.domain.valueobjects.PhotoId;
 import com.rapidphotoupload.domain.valueobjects.UploadedBy;
 import com.rapidphotoupload.infrastructure.exceptions.ValidationException;
+import com.rapidphotoupload.infrastructure.events.DomainEventPublisher;
 import org.springframework.stereotype.Component;
 
 /**
@@ -25,14 +26,17 @@ public class UploadPhotoCommandHandler implements CommandHandler<UploadPhotoComm
     private final PhotoRepository photoRepository;
     private final UserRepository userRepository;
     private final UploadJobRepository uploadJobRepository;
+    private final DomainEventPublisher eventPublisher;
     
     public UploadPhotoCommandHandler(
             PhotoRepository photoRepository,
             UserRepository userRepository,
-            UploadJobRepository uploadJobRepository) {
+            UploadJobRepository uploadJobRepository,
+            DomainEventPublisher eventPublisher) {
         this.photoRepository = photoRepository;
         this.userRepository = userRepository;
         this.uploadJobRepository = uploadJobRepository;
+        this.eventPublisher = eventPublisher;
     }
     
     @Override
@@ -45,8 +49,8 @@ public class UploadPhotoCommandHandler implements CommandHandler<UploadPhotoComm
             throw new ValidationException("Storage quota exceeded");
         }
         
-        // Validate job if provided
-        PhotoId photoId = PhotoId.generate();
+        // Use provided PhotoId or generate new one
+        PhotoId photoId = command.photoId() != null ? command.photoId() : PhotoId.generate();
         
         if (command.jobId() != null) {
             UploadJob job = uploadJobRepository.findById(command.jobId())
@@ -60,8 +64,8 @@ public class UploadPhotoCommandHandler implements CommandHandler<UploadPhotoComm
             // Add photo to job
             job.addPhoto(photoId);
             uploadJobRepository.save(job);
-            // Domain events are published by infrastructure when getDomainEvents() is called
-            job.getDomainEvents();
+            // Publish domain events
+            eventPublisher.publishAll(job.getDomainEvents());
         }
         
         // Create photo aggregate
@@ -72,7 +76,8 @@ public class UploadPhotoCommandHandler implements CommandHandler<UploadPhotoComm
             command.filename(),
             command.fileSize(),
             command.contentType(),
-            uploadedBy
+            uploadedBy,
+            command.jobId() // Pass the jobId to the photo creation
         );
         
         // Add tags if provided (would need TagRepository)
@@ -81,8 +86,8 @@ public class UploadPhotoCommandHandler implements CommandHandler<UploadPhotoComm
         // Save photo
         photoRepository.save(photo);
         
-        // Domain events are published by infrastructure when getDomainEvents() is called
-        photo.getDomainEvents();
+        // Publish domain events (including PhotoUploadStarted with jobId)
+        eventPublisher.publishAll(photo.getDomainEvents());
         
         return CommandResult.success(photoId);
     }

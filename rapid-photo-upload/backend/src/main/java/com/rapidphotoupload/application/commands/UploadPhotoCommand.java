@@ -5,6 +5,7 @@ import com.rapidphotoupload.domain.valueobjects.FileSize;
 import com.rapidphotoupload.domain.valueobjects.ContentType;
 import com.rapidphotoupload.domain.valueobjects.UserId;
 import com.rapidphotoupload.domain.valueobjects.JobId;
+import com.rapidphotoupload.domain.valueobjects.PhotoId;
 
 import java.util.Set;
 
@@ -12,6 +13,7 @@ import java.util.Set;
  * Command to upload a single photo.
  */
 public record UploadPhotoCommand(
+    PhotoId photoId, // Optional, null to generate new
     Filename filename,
     FileSize fileSize,
     ContentType contentType,

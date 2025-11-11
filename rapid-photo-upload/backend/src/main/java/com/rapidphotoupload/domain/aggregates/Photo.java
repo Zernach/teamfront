@@ -74,6 +74,17 @@ public class Photo {
         ContentType contentType,
         UploadedBy uploadedBy
     ) {
+        return create(id, filename, fileSize, contentType, uploadedBy, null);
+    }
+    
+    public static Photo create(
+        PhotoId id,
+        Filename filename,
+        FileSize fileSize,
+        ContentType contentType,
+        UploadedBy uploadedBy,
+        com.rapidphotoupload.domain.valueobjects.JobId jobId
+    ) {
         Photo photo = new Photo();
         photo.id = id;
         photo.filename = filename;
@@ -84,8 +95,8 @@ public class Photo {
         photo.uploadedAt = UploadedAt.now();
         photo.metadata = new PhotoMetadata();
 
-        // Raise domain event
-        photo.raiseEvent(PhotoUploadStarted.create(id, uploadedBy));
+        // Raise domain event with jobId
+        photo.raiseEvent(PhotoUploadStarted.create(id, uploadedBy, jobId));
 
         return photo;
     }

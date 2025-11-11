@@ -1,13 +1,26 @@
 package com.rapidphotoupload.infrastructure.config;
 
 import com.rapidphotoupload.infrastructure.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Security configuration for the application.
@@ -15,6 +28,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    
+    private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
     
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     
@@ -24,17 +39,77 @@ public class SecurityConfig {
     
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        logger.info("Configuring Spring Security filter chain");
+        
         http
             .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/ws/**").permitAll() // WebSocket connections handled separately
-                .anyRequest().authenticated()
-            )
+            .formLogin(formLogin -> formLogin.disable())
+            .httpBasic(httpBasic -> httpBasic.disable())
+            .logout(logout -> logout.disable())
+            .authorizeHttpRequests(auth -> {
+                auth.requestMatchers("/api/v1/auth/**").permitAll();
+                auth.requestMatchers("/auth/**").permitAll(); // Legacy path support
+                auth.requestMatchers("/ws/**").permitAll(); // WebSocket connections handled separately
+                auth.requestMatchers("/error").permitAll(); // Error endpoint for JSON error responses
+                auth.requestMatchers("/health").permitAll(); // Health check endpoint
+                auth.requestMatchers("/").permitAll(); // Root endpoint
+                auth.anyRequest().authenticated();
+                logger.info("Authorization rules configured: /api/v1/auth/** and /auth/** are public");
+            })
+            .exceptionHandling(exceptions -> {
+                exceptions.authenticationEntryPoint(new JsonAuthenticationEntryPoint());
+                exceptions.accessDeniedHandler((request, response, accessDeniedException) -> {
+                    logger.warn("Access denied for request: {}", request.getRequestURI());
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.getWriter().write(
+                        "{\"errorCode\":\"FORBIDDEN\",\"message\":\"Access denied\",\"path\":\"" +
+                        request.getRequestURI() + "\"}"
+                    );
+                });
+                logger.debug("Exception handling configured with JSON responses");
+            })
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         
+        logger.info("Spring Security filter chain configured successfully");
         return http.build();
+    }
+    
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(false);
+        configuration.setMaxAge(3600L);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        logger.info("CORS configuration set up for all origins");
+        return source;
+    }
+    
+    /**
+     * Custom authentication entry point that returns JSON instead of redirecting to login page.
+     */
+    private static class JsonAuthenticationEntryPoint implements AuthenticationEntryPoint {
+        private static final Logger logger = LoggerFactory.getLogger(JsonAuthenticationEntryPoint.class);
+        
+        @Override
+        public void commence(HttpServletRequest request, HttpServletResponse response,
+                            AuthenticationException authException) throws IOException {
+            logger.warn("Authentication entry point triggered for: {} - {}", 
+                request.getRequestURI(), authException.getMessage());
+            response.setContentType("application/json;charset=UTF-8");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write(
+                "{\"errorCode\":\"UNAUTHORIZED\",\"message\":\"Authentication required\",\"path\":\"" +
+                request.getRequestURI() + "\"}"
+            );
+        }
     }
 }
 

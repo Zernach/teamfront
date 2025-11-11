@@ -37,9 +37,14 @@ const authSlice = createSlice({
       // Clear token from storage
       tokenStorage.clearAuthToken().catch(console.error);
     },
+    initializeAuth: (state, action: PayloadAction<{ user: AuthState['user']; token: string }>) => {
+      state.user = action.payload.user;
+      state.token = action.payload.token;
+      state.isAuthenticated = true;
+    },
   },
 });
 
-export const { setAuth, clearAuth } = authSlice.actions;
+export const { setAuth, clearAuth, initializeAuth } = authSlice.actions;
 export default authSlice.reducer;
 

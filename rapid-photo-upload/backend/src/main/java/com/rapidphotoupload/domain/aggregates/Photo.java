@@ -34,6 +34,37 @@ public class Photo {
     }
 
     /**
+     * Factory method to reconstruct a Photo aggregate from persistence (for repository use).
+     * This is used by infrastructure layer to reconstruct aggregates from database entities.
+     */
+    public static Photo reconstruct(
+        PhotoId id,
+        Filename filename,
+        FileSize fileSize,
+        ContentType contentType,
+        UploadStatus status,
+        StorageKey storageKey,
+        StorageKey thumbnailStorageKey,
+        UploadedAt uploadedAt,
+        UploadedBy uploadedBy,
+        PhotoMetadata metadata
+    ) {
+        Photo photo = new Photo();
+        photo.id = id;
+        photo.filename = filename;
+        photo.fileSize = fileSize;
+        photo.contentType = contentType;
+        photo.status = status;
+        photo.storageKey = storageKey;
+        photo.thumbnailStorageKey = thumbnailStorageKey;
+        photo.uploadedAt = uploadedAt;
+        photo.uploadedBy = uploadedBy;
+        photo.metadata = metadata != null ? metadata : new PhotoMetadata();
+        // Don't raise domain events when reconstructing from persistence
+        return photo;
+    }
+
+    /**
      * Factory method to create a new Photo aggregate.
      */
     public static Photo create(

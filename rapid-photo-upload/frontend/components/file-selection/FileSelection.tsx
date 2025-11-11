@@ -24,42 +24,68 @@ export function FileSelection({
 
   const handleFiles = useCallback(
     (files: FileList | File[]) => {
+      console.log('[FileSelection] handleFiles called with', files.length, 'files');
       const fileArray = Array.from(files);
       const validFiles: File[] = [];
       const errors: string[] = [];
 
       // Validate files
-      fileArray.forEach((file) => {
+      fileArray.forEach((file, index) => {
+        console.log(`[FileSelection] Validating file ${index + 1}/${fileArray.length}:`, {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        });
+
         if (!isValidImageFile(file)) {
-          errors.push(`${file.name}: Not an image file`);
+          const error = `${file.name}: Not an image file`;
+          console.warn('[FileSelection]', error);
+          errors.push(error);
           return;
         }
         if (!isValidFileSize(file, maxFileSizeMB)) {
-          errors.push(`${file.name}: File size exceeds ${maxFileSizeMB}MB`);
+          const error = `${file.name}: File size exceeds ${maxFileSizeMB}MB`;
+          console.warn('[FileSelection]', error);
+          errors.push(error);
           return;
         }
         validFiles.push(file);
+        console.log(`[FileSelection] File ${index + 1} validated successfully`);
       });
 
       // Check total count
       if (validFiles.length > maxFiles) {
-        errors.push(`Maximum ${maxFiles} files allowed`);
+        const error = `Maximum ${maxFiles} files allowed`;
+        console.warn('[FileSelection]', error);
+        errors.push(error);
         validFiles.splice(maxFiles);
       }
 
+      console.log('[FileSelection] Validation complete:', {
+        totalFiles: fileArray.length,
+        validFiles: validFiles.length,
+        errors: errors.length,
+      });
+
       // Add valid files to upload queue
-      validFiles.forEach((file) => {
+      validFiles.forEach((file, index) => {
         const uploadId = generateUploadId();
+        console.log(`[FileSelection] Adding file ${index + 1}/${validFiles.length} to queue:`, {
+          uploadId,
+          fileName: file.name,
+          fileSize: file.size,
+        });
         dispatch(addToQueue({ id: uploadId, file }));
       });
 
       if (onFilesSelected) {
+        console.log('[FileSelection] Calling onFilesSelected callback with', validFiles.length, 'files');
         onFilesSelected(validFiles);
       }
 
       // Display errors if any
       if (errors.length > 0) {
-        console.warn('File validation errors:', errors);
+        console.warn('[FileSelection] File validation errors:', errors);
         // TODO: Show error toast/notification
       }
     },

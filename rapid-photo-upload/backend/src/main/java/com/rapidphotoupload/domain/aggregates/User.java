@@ -1,3 +1,4 @@
+
 package com.rapidphotoupload.domain.aggregates;
 
 import com.rapidphotoupload.domain.events.StorageQuotaExceeded;
@@ -30,6 +31,35 @@ public class User {
     private User() {
         this.domainEvents = new ArrayList<>();
         this.roles = Set.of(Role.USER);
+    }
+
+    /**
+     * Factory method to reconstruct a User aggregate from persistence (for repository use).
+     * This is used by infrastructure layer to reconstruct aggregates from database entities.
+     */
+    public static User reconstruct(
+        UserId id,
+        Username username,
+        Email email,
+        PasswordHash passwordHash,
+        StorageQuota storageQuota,
+        UsedStorage usedStorage,
+        CreatedAt createdAt,
+        LastLoginAt lastLoginAt,
+        Set<Role> roles
+    ) {
+        User user = new User();
+        user.id = id;
+        user.username = username;
+        user.email = email;
+        user.passwordHash = passwordHash;
+        user.roles = Set.copyOf(roles);
+        user.storageQuota = storageQuota;
+        user.usedStorage = usedStorage;
+        user.createdAt = createdAt;
+        user.lastLoginAt = lastLoginAt;
+        // Don't raise domain events when reconstructing from persistence
+        return user;
     }
 
     /**

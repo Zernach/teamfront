@@ -60,6 +60,35 @@ public class UploadJob {
     }
 
     /**
+     * Factory method to reconstruct an UploadJob aggregate from persistence (for repository use).
+     * This is used by infrastructure layer to reconstruct aggregates from database entities.
+     */
+    public static UploadJob reconstruct(
+            JobId id,
+            UserId userId,
+            List<PhotoId> photos,
+            TotalPhotos totalPhotos,
+            CompletedPhotos completedPhotos,
+            FailedPhotos failedPhotos,
+            JobStatus status,
+            CreatedAt createdAt,
+            CompletedAt completedAt
+    ) {
+        UploadJob job = new UploadJob();
+        job.id = id;
+        job.userId = userId;
+        job.photos = new ArrayList<>(photos != null ? photos : List.of());
+        job.totalPhotos = totalPhotos;
+        job.completedPhotos = completedPhotos;
+        job.failedPhotos = failedPhotos;
+        job.status = status;
+        job.createdAt = createdAt;
+        job.completedAt = completedAt;
+        // Don't raise events when reconstructing from persistence
+        return job;
+    }
+
+    /**
      * Add a photo to the job.
      */
     public void addPhoto(PhotoId photoId) {

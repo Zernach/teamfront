@@ -14,12 +14,16 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * JWT authentication filter that validates JWT tokens in requests.
  */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    
+    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     
     private final JwtService jwtService;
     
@@ -32,6 +36,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
+        
+        // Skip JWT authentication for public endpoints
+        String path = request.getRequestURI();
+        logger.info("JwtAuthenticationFilter processing request: {} {}", request.getMethod(), path);
+        
+        if (path.startsWith("/api/v1/auth/") || path.startsWith("/auth/") || path.startsWith("/ws/")) {
+            logger.info("Skipping JWT authentication for public endpoint: {}", path);
+            filterChain.doFilter(request, response);
+            return;
+        }
         
         final String authHeader = request.getHeader("Authorization");
         

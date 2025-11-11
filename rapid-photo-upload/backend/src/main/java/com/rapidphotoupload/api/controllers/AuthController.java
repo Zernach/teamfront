@@ -13,6 +13,8 @@ import com.rapidphotoupload.domain.valueobjects.*;
 import com.rapidphotoupload.infrastructure.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,9 +26,11 @@ import java.util.UUID;
  * Controller for authentication endpoints.
  */
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/v1/auth")
 @CrossOrigin(origins = "*")
 public class AuthController {
+    
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
     
     private final CommandDispatcher commandDispatcher;
     private final UserRepository userRepository;
@@ -38,6 +42,12 @@ public class AuthController {
     
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
+        logger.info("=== REGISTRATION REQUEST RECEIVED ===");
+        logger.info("Request URI: {}", httpRequest.getRequestURI());
+        logger.info("Request URL: {}", httpRequest.getRequestURL());
+        logger.info("Method: {}", httpRequest.getMethod());
+        logger.info("Content-Type: {}", httpRequest.getContentType());
+        logger.info("Registration request received for email: {}", request.getEmail());
         try {
             // Create command
             RegisterUserCommand command = new RegisterUserCommand(
@@ -46,8 +56,10 @@ public class AuthController {
                 request.getPassword()
             );
             
+            logger.debug("Dispatching RegisterUserCommand");
             // Execute command
             var result = commandDispatcher.dispatch(command);
+            logger.debug("Command dispatched, result type: {}", result.getClass().getSimpleName());
             
             if (result instanceof CommandResult.Success<?> success) {
                 // Get created user for response
@@ -62,6 +74,7 @@ public class AuthController {
                     user.getCreatedAt().getValue()
                 );
                 
+                logger.info("Registration successful for user: {}", user.getEmail().getValue());
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
             } else if (result instanceof CommandResult.Failure<?> failure) {
                 return ResponseEntity.badRequest().body(new ErrorResponse(
@@ -71,8 +84,10 @@ public class AuthController {
                 ));
             }
             
+            logger.error("Unexpected result type from command dispatcher");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         } catch (Exception e) {
+            logger.error("Registration failed", e);
             return ResponseEntity.badRequest().body(new ErrorResponse(
                 "VALIDATION_ERROR",
                 e.getMessage(),
@@ -83,6 +98,7 @@ public class AuthController {
     
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        logger.info("Login request received for username: {}", request.getUsername());
         try {
             // Create command
             LoginUserCommand command = new LoginUserCommand(
@@ -95,13 +111,26 @@ public class AuthController {
             
             if (result instanceof CommandResult.Success<?> success) {
                 AuthTokensDTO tokens = (AuthTokensDTO) success.data();
+                
+                // Get user info for response
+                User user = userRepository.findByUsername(command.getUsername())
+                    .orElseThrow(() -> new RuntimeException("User not found after login"));
+                
+                AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(
+                    user.getId().getValue(),
+                    user.getUsername().getValue(),
+                    user.getEmail().getValue()
+                );
+                
                 AuthResponse response = new AuthResponse(
                     tokens.getAccessToken(),
                     tokens.getRefreshToken(),
                     tokens.getAccessTokenExpiresAt(),
-                    tokens.getRefreshTokenExpiresAt()
+                    tokens.getRefreshTokenExpiresAt(),
+                    userInfo
                 );
                 
+                logger.info("Login successful for user: {}", user.getEmail().getValue());
                 return ResponseEntity.ok(response);
             } else if (result instanceof CommandResult.Failure<?> failure) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -114,6 +143,7 @@ public class AuthController {
             
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         } catch (Exception e) {
+            logger.error("Login failed", e);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(new ErrorResponse(
                     "AUTH_ERROR",

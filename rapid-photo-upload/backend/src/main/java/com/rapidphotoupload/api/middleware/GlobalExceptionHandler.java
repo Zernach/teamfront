@@ -7,6 +7,8 @@ import com.rapidphotoupload.infrastructure.exceptions.StorageQuotaExceededExcept
 import com.rapidphotoupload.infrastructure.exceptions.ValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -65,6 +67,29 @@ public class GlobalExceptionHandler {
         ErrorResponse error = new ErrorResponse(
             ex.getErrorCode(),
             ex.getMessage(),
+            request.getDescription(false).replace("uri=", "")
+        );
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationExceptions(
+        MethodArgumentNotValidException ex,
+        WebRequest request
+    ) {
+        StringBuilder errorMessage = new StringBuilder();
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
+            String fieldName = ((FieldError) error).getField();
+            String message = error.getDefaultMessage();
+            if (errorMessage.length() > 0) {
+                errorMessage.append("; ");
+            }
+            errorMessage.append(fieldName).append(": ").append(message);
+        });
+        
+        ErrorResponse error = new ErrorResponse(
+            "VALIDATION_ERROR",
+            errorMessage.toString(),
             request.getDescription(false).replace("uri=", "")
         );
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);

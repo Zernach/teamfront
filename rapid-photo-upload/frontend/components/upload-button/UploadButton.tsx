@@ -31,9 +31,13 @@ export function UploadButton() {
   useEffect(() => {
     // Connect WebSocket for real-time updates
     const connectWebSocket = async () => {
+      console.log('[UploadButton] Initializing WebSocket connection');
       const token = await tokenStorage.getAuthToken();
       if (token) {
+        console.log('[UploadButton] Auth token found, connecting WebSocket');
         webSocketClient.connect(token);
+      } else {
+        console.warn('[UploadButton] No auth token found, skipping WebSocket connection');
       }
     };
 
@@ -41,13 +45,16 @@ export function UploadButton() {
 
     return () => {
       // Don't disconnect on unmount - keep connection alive
+      console.log('[UploadButton] Component unmounting, keeping WebSocket connection alive');
     };
   }, []);
 
   useEffect(() => {
     // Subscribe to job progress if activeJobId exists
     if (activeJobId) {
+      console.log('[UploadButton] Subscribing to job progress for jobId:', activeJobId);
       const handleJobProgress = (data: WebSocketProgressData) => {
+        console.log('[UploadButton] Received WebSocket progress update:', data);
         // Update individual photo progress
         if (data.photoId && data.progress !== undefined) {
           // Find the queue item by matching file name or ID
@@ -57,7 +64,14 @@ export function UploadButton() {
           });
 
           if (queueItem) {
+            console.log('[UploadButton] Updating progress for queue item:', queueItem.id, 'to', data.progress);
             dispatch(updateProgress({ id: queueItem.id, progress: data.progress! }));
+          } else {
+            console.warn('[UploadButton] Could not find queue item for progress update:', {
+              photoId: data.photoId,
+              filename: data.filename,
+              queueItems: queue.map(item => ({ id: item.id, filename: item.file.name })),
+            });
           }
         }
 
@@ -67,6 +81,7 @@ export function UploadButton() {
             item.file.name === data.filename || item?.id === data.photoId
           );
           if (queueItem) {
+            console.log('[UploadButton] Marking queue item as completed:', queueItem.id);
             dispatch(markCompleted({ id: queueItem.id }));
           }
         }
@@ -77,6 +92,7 @@ export function UploadButton() {
             item.file.name === data.filename || item?.id === data.photoId
           );
           if (queueItem) {
+            console.log('[UploadButton] Marking queue item as failed:', queueItem.id, data.error);
             dispatch(markFailed({ id: queueItem.id, error: data.error || 'Upload failed' }));
           }
         }
@@ -85,41 +101,70 @@ export function UploadButton() {
       webSocketClient.subscribeToJobProgress(activeJobId, handleJobProgress);
 
       return () => {
+        console.log('[UploadButton] Unsubscribing from job progress for jobId:', activeJobId);
         webSocketClient.unsubscribeFromJobProgress(activeJobId);
       };
+    } else {
+      console.log('[UploadButton] No activeJobId, skipping WebSocket subscription');
     }
   }, [activeJobId, dispatch, queue]);
 
   const handleUpload = useCallback(async () => {
+    console.log('[UploadButton] Upload button clicked');
+    console.log('[UploadButton] Queue state:', {
+      totalItems: queue.length,
+      queuedFiles: queuedFiles.length,
+      isUploading,
+      uploadBatchPending: uploadBatch.isPending,
+    });
+
     if (!hasQueuedFiles) {
+      console.warn('[UploadButton] No queued files, showing alert');
       Alert.alert('No files', 'Please select files to upload first');
       return;
     }
 
     try {
       const files = queuedFiles.map((item) => item.file);
+      console.log('[UploadButton] Preparing to upload files:', files.map(f => ({
+        name: f.name,
+        size: f.size,
+        type: f.type,
+      })));
 
+      console.log('[UploadButton] Calling uploadBatch.mutateAsync with', files.length, 'files');
       const result = await uploadBatch.mutateAsync(files);
+      console.log('[UploadButton] Upload batch mutation completed:', result);
 
       // Set active job ID for WebSocket updates
       if (result.jobId) {
+        console.log('[UploadButton] Setting active job ID:', result.jobId);
         dispatch(setActiveJobId({ jobId: result.jobId }));
+      } else {
+        console.warn('[UploadButton] No jobId in response, progress tracking may be limited');
       }
 
       // If the API doesn't return a jobId, we'll need to handle progress differently
       // For now, mark all as uploading
+      console.log('[UploadButton] Marking all queued files as uploading');
       queuedFiles.forEach((item: QueueItem) => {
         dispatch(updateProgress({ id: item?.id, progress: 0 }));
       });
     } catch (error: unknown) {
-      console.error('Upload error:', error);
+      console.error('[UploadButton] Upload error caught:', error);
       const errorMessage = error instanceof Error
         ? error.message
         : (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to start upload';
 
+      console.error('[UploadButton] Error details:', {
+        message: errorMessage,
+        error,
+      });
+
       Alert.alert('Upload Failed', errorMessage);
 
       // Mark all queued files as failed
+      console.log('[UploadButton] Marking all queued files as failed');
       queuedFiles.forEach((item: QueueItem) => {
         dispatch(markFailed({ id: item?.id, error: 'Failed to start upload' }));
       });
@@ -167,7 +212,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: COLORS.white,
+    color: COLORS.black,
     fontSize: 18,
     fontWeight: '600',
   },

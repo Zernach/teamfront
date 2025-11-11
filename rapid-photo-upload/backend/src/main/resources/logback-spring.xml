@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    
+    <!-- Property for log file location -->
+    <property name="LOG_FILE" value="${LOG_FILE:-${LOG_PATH:-${LOG_TEMP:-${java.io.tmpdir:-/tmp}}/}spring.log}"/>
+    
+    <!-- Console appender - outputs to stdout/stderr (captured by Elastic Beanstalk) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- File appender for local development (optional) -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_FILE}</file>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_FILE}.%d{yyyy-MM-dd}.gz</fileNamePattern>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>1GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+    
+    <!-- Application-specific loggers -->
+    <logger name="com.rapidphotoupload" level="INFO"/>
+    <logger name="com.photoupload" level="INFO"/>
+    
+    <!-- Spring Framework loggers -->
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="org.springframework.web" level="INFO"/>
+    <logger name="org.springframework.security" level="INFO"/>
+    
+    <!-- Hibernate/JPA loggers -->
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="org.hibernate.SQL" level="WARN"/>
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="WARN"/>
+    
+    <!-- AWS SDK loggers -->
+    <logger name="software.amazon.awssdk" level="INFO"/>
+    
+    <!-- WebSocket loggers -->
+    <logger name="org.springframework.web.socket" level="INFO"/>
+    
+    <!-- Root logger - always use CONSOLE for Elastic Beanstalk -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+    
+    <!-- Profile-specific configurations -->
+    <springProfile name="local">
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </root>
+        <logger name="com.rapidphotoupload" level="DEBUG"/>
+        <logger name="org.springframework.web" level="DEBUG"/>
+    </springProfile>
+    
+    <springProfile name="dev,prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+</configuration>
+

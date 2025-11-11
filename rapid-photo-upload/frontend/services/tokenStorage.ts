@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 /**
@@ -6,9 +5,26 @@ import { Platform } from 'react-native';
  * Uses localStorage on web, AsyncStorage on native.
  */
 class TokenStorage {
+  private getAsyncStorage() {
+    if (Platform.OS === 'web') {
+      return null;
+    }
+    // Lazy import AsyncStorage only on native platforms
+    try {
+      return require('@react-native-async-storage/async-storage').default;
+    } catch (error) {
+      console.warn('AsyncStorage not available:', error);
+      return null;
+    }
+  }
+
   private async getItem(key: string): Promise<string | null> {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       return window.localStorage.getItem(key);
+    }
+    const AsyncStorage = this.getAsyncStorage();
+    if (!AsyncStorage) {
+      throw new Error('AsyncStorage is not available on this platform');
     }
     return await AsyncStorage.getItem(key);
   }
@@ -18,6 +34,10 @@ class TokenStorage {
       window.localStorage.setItem(key, value);
       return;
     }
+    const AsyncStorage = this.getAsyncStorage();
+    if (!AsyncStorage) {
+      throw new Error('AsyncStorage is not available on this platform');
+    }
     await AsyncStorage.setItem(key, value);
   }
 
@@ -25,6 +45,10 @@ class TokenStorage {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
       window.localStorage.removeItem(key);
       return;
+    }
+    const AsyncStorage = this.getAsyncStorage();
+    if (!AsyncStorage) {
+      throw new Error('AsyncStorage is not available on this platform');
     }
     await AsyncStorage.removeItem(key);
   }

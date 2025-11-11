@@ -1,6 +1,7 @@
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native';
 import { Screen } from '../components/screen';
+import { UserAvatar } from '../components/user-avatar';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/colors';
 
@@ -9,6 +10,7 @@ export default function Index() {
 
   return (
     <Screen style={styles.container}>
+      <UserAvatar />
       <View style={styles.content}>
         <Text style={styles.title}>Rapid Photo Upload</Text>
         <Text style={styles.subtitle}>Upload and manage your photos</Text>

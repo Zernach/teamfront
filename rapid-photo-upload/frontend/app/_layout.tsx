@@ -4,6 +4,7 @@ import { StyleSheet, StatusBar, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Head from 'expo-router/head';
 import { Providers } from '../components/Providers';
+import { AuthGuard } from '../components/AuthGuard';
 import { COLORS } from '../constants/colors';
 
 export default function RootLayout() {
@@ -19,15 +20,17 @@ export default function RootLayout() {
           translucent={Platform.OS === 'android'}
         />
         <GestureHandlerRootView style={styles.container}>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: {
-                backgroundColor: COLORS.background,
-              },
-              animation: 'default',
-            }}
-          />
+          <AuthGuard>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: {
+                  backgroundColor: COLORS.background,
+                },
+                animation: 'default',
+              }}
+            />
+          </AuthGuard>
         </GestureHandlerRootView>
       </Providers>
     </SafeAreaProvider>

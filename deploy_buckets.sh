@@ -28,12 +28,20 @@ for PROJECT in "${PROJECTS[@]}"; do
     --public-access-block-configuration \
       "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=false,RestrictPublicBuckets=false"
   
-  # Create OAC
-  OAC_OUTPUT=$(aws cloudfront create-origin-access-control \
-    --origin-access-control-config \
-      Name=${PROJECT}-oac,OriginAccessControlOriginType=s3,SigningBehavior=always,SigningProtocol=sigv4 \
-    --query 'OriginAccessControl.{Id:Id}' --output text)
+  # Create or get existing OAC
+  OAC_NAME="${PROJECT}-oac"
+  OAC_OUTPUT=$(aws cloudfront list-origin-access-controls --query "OriginAccessControlList.Items[?Name=='${OAC_NAME}'].Id" --output text 2>/dev/null || echo "")
   
-  echo "Created OAC for ${PROJECT}: ${OAC_OUTPUT}"
+  if [ -z "$OAC_OUTPUT" ]; then
+    # OAC doesn't exist, create it
+    OAC_OUTPUT=$(aws cloudfront create-origin-access-control \
+      --origin-access-control-config \
+        Name=${OAC_NAME},OriginAccessControlOriginType=s3,SigningBehavior=always,SigningProtocol=sigv4 \
+      --query 'OriginAccessControl.{Id:Id}' --output text)
+    echo "Created OAC for ${PROJECT}: ${OAC_OUTPUT}"
+  else
+    echo "OAC already exists for ${PROJECT}: ${OAC_OUTPUT}"
+  fi
+  
   echo "Next: Create CloudFront distribution using OAC ID: ${OAC_OUTPUT}"
 done

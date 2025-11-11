@@ -1,6 +1,6 @@
 // services/api/client.ts
 import { API_CONFIG, ApiException } from './config';
-import { tokenStorage } from '../tokenStorage';
+import { fetchAuthSession } from 'aws-amplify/auth';
 
 class ApiClient {
   private baseURL: string;
@@ -19,8 +19,15 @@ class ApiClient {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
-    // Get auth token and add to headers
-    const token = await tokenStorage.getAuthToken();
+    // Get Cognito access token and add to headers
+    let token: string | null = null;
+    try {
+      const session = await fetchAuthSession();
+      token = session.tokens?.accessToken?.toString() || null;
+    } catch (error) {
+      console.warn('Failed to get Cognito session:', error);
+    }
+
     const headers: Record<string, string> = {
       ...API_CONFIG.headers,
       ...(options.headers as Record<string, string>),

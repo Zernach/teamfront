@@ -41,8 +41,8 @@
     ],
     "scheme": "invoice-me",
     "extra": {
-      "EXPO_PUBLIC_COGNITO_USER_POOL_ID": "us-west-1_5kNwPlpbx",
-      "EXPO_PUBLIC_COGNITO_CLIENT_ID": "3ms71cslp7obf865633fsfb11g",
+      "EXPO_PUBLIC_COGNITO_USER_POOL_ID": "us-west-1_Bdi9Y0FRW",
+      "EXPO_PUBLIC_COGNITO_CLIENT_ID": "3f3sa60g8j4a1nvghn2me44gc1",
       "EXPO_PUBLIC_COGNITO_REGION": "us-west-1"
     }
   }

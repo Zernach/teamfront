@@ -8,24 +8,29 @@ import { useEffect } from 'react';
 import { Colors } from '../constants/colors';
 import { store } from '../store';
 import { initializeAuth } from '../store/authSlice';
-import { tokenStorage } from '../services/tokenStorage';
+import { cognitoAuthService } from '../services/cognito/authService';
+import '../services/cognito/config'; // Initialize Amplify
 import { AuthGuard } from '../components/AuthGuard';
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    // Initialize auth state from token storage on app startup
+    // Initialize auth state from Cognito on app startup
     const initAuth = async () => {
       try {
-        const token = await tokenStorage.getAuthToken();
-        if (token) {
-          // Token exists, but we don't have user info without decoding JWT
-          // For now, we'll set a minimal auth state. User info will be fetched on next API call
-          // or when they login again. This allows the app to work if token is still valid.
+        const user = await cognitoAuthService.getCurrentUser();
+        const accessToken = await cognitoAuthService.getAccessToken();
+        
+        if (user && accessToken) {
           dispatch(initializeAuth({
-            user: null, // Will be populated on next login or API call
-            token,
+            user: {
+              id: user.id,
+              email: user.email,
+              fullName: user.fullName,
+              role: 'USER',
+            },
+            token: accessToken,
           }));
         }
       } catch (error) {

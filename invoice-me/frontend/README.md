@@ -86,3 +86,4 @@ To complete the frontend, implement:
 10. Authentication screens (when backend auth is ready)
 
 
+

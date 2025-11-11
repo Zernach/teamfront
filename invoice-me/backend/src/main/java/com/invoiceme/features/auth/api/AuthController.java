@@ -1,175 +1,48 @@
 package com.invoiceme.features.auth.api;
 
-import com.invoiceme.features.auth.dto.LoginRequest;
 import com.invoiceme.features.auth.dto.LoginResponse;
-import com.invoiceme.features.auth.dto.RegisterRequest;
-import com.invoiceme.features.auth.dto.RegisterResponse;
-import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.Base64;
 import java.util.UUID;
 
 /**
  * Controller for authentication endpoints.
+ * Note: Login and registration are handled by AWS Cognito on the frontend.
+ * This controller only provides endpoints to get current user info.
  */
 @RestController
 @RequestMapping("/api/v1/auth")
-@CrossOrigin(origins = "*")
 public class AuthController {
-    
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
-        try {
-            // TODO: Implement full user registration with password hashing and database storage
-            // For now, return a success response with generated user data
-            // This is a placeholder implementation
-            
-            RegisterResponse response = new RegisterResponse();
-            response.setId(UUID.randomUUID().toString());
-            response.setEmail(request.getEmail());
-            response.setFullName(request.getFullName() != null ? request.getFullName() : "");
-            
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(
-                    "REGISTRATION_ERROR",
-                    e.getMessage(),
-                    "/api/v1/auth/register"
-                ));
-        }
-    }
-    
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
-        try {
-            // TODO: Implement full login with user lookup, password verification, and JWT token generation
-            // For now, return a mock success response
-            // This is a placeholder implementation
-            
-            // Basic validation - in real implementation, check against database
-            if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse(
-                        "VALIDATION_ERROR",
-                        "Email is required",
-                        "/api/v1/auth/login"
-                    ));
-            }
-            
-            if (request.getPassword() == null || request.getPassword().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse(
-                        "VALIDATION_ERROR",
-                        "Password is required",
-                        "/api/v1/auth/login"
-                    ));
-            }
-            
-            // Generate mock tokens (base64 encoded email + timestamp)
-            // In production, use proper JWT library
-            String tokenPayload = request.getEmail() + ":" + System.currentTimeMillis();
-            String accessToken = Base64.getEncoder().encodeToString(tokenPayload.getBytes());
-            String refreshToken = Base64.getEncoder().encodeToString((tokenPayload + ":refresh").getBytes());
-            
-            // Create user info
-            LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo();
-            userInfo.setId(UUID.randomUUID().toString());
-            userInfo.setEmail(request.getEmail());
-            userInfo.setFullName("User"); // TODO: Get from database
-            userInfo.setRole("USER"); // TODO: Get from database
-            
-            // Create login response
-            LoginResponse response = new LoginResponse();
-            response.setAccessToken(accessToken);
-            response.setRefreshToken(refreshToken);
-            response.setTokenType("Bearer");
-            response.setExpiresIn(900); // 15 minutes
-            response.setUser(userInfo);
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse(
-                    "LOGIN_ERROR",
-                    e.getMessage(),
-                    "/api/v1/auth/login"
-                ));
-        }
-    }
-    
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout() {
-        // TODO: Implement logout (invalidate tokens)
-        return ResponseEntity.ok().build();
-    }
-    
-    @PostMapping("/refresh")
-    public ResponseEntity<?> refresh(@RequestBody RefreshTokenRequest request) {
-        // TODO: Implement token refresh
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
-            .body(new ErrorResponse(
-                "NOT_IMPLEMENTED",
-                "Token refresh endpoint not yet implemented",
-                "/api/v1/auth/refresh"
-            ));
-    }
     
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
         try {
-            // Extract Authorization header
-            String authHeader = request.getHeader("Authorization");
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            
+            if (authentication == null || !authentication.isAuthenticated()) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse(
                         "UNAUTHORIZED",
-                        "Missing or invalid Authorization header",
+                        "Not authenticated",
                         "/api/v1/auth/me"
                     ));
             }
             
-            // Extract token
-            String token = authHeader.substring(7); // Remove "Bearer " prefix
-            
-            // Decode token (current implementation uses base64 encoded email:timestamp)
-            String decodedPayload;
-            try {
-                byte[] decodedBytes = Base64.getDecoder().decode(token);
-                decodedPayload = new String(decodedBytes);
-            } catch (IllegalArgumentException e) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ErrorResponse(
-                        "UNAUTHORIZED",
-                        "Invalid token format",
-                        "/api/v1/auth/me"
-                    ));
-            }
-            
-            // Extract email from token (format: email:timestamp)
-            String email;
-            if (decodedPayload.contains(":")) {
-                email = decodedPayload.substring(0, decodedPayload.indexOf(":"));
-            } else {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ErrorResponse(
-                        "UNAUTHORIZED",
-                        "Invalid token payload",
-                        "/api/v1/auth/me"
-                    ));
-            }
+            // Extract user info from authentication
+            String principal = authentication.getName();
+            String email = authentication.getDetails() != null ? authentication.getDetails().toString() : principal;
             
             // Create user info response
-            // TODO: In production, look up user from database using email
             LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo();
             userInfo.setId(UUID.nameUUIDFromBytes(email.getBytes()).toString()); // Generate consistent ID from email
             userInfo.setEmail(email);
-            userInfo.setFullName("User"); // TODO: Get from database
-            userInfo.setRole("USER"); // TODO: Get from database
+            userInfo.setFullName("User"); // TODO: Get from database or token claims
+            userInfo.setRole("USER"); // TODO: Get from token claims or database
             
             return ResponseEntity.ok(userInfo);
         } catch (Exception e) {
@@ -183,13 +56,6 @@ public class AuthController {
     }
     
     // Inner classes for request/response DTOs
-    public static class RefreshTokenRequest {
-        private String refreshToken;
-        
-        public String getRefreshToken() { return refreshToken; }
-        public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }
-    }
-    
     public static class ErrorResponse {
         private String errorCode;
         private String message;

@@ -2,9 +2,15 @@ import { Platform } from 'react-native';
 
 // fontFamily: 'SF-Pro-Rounded-Bold',
 export const FONT_FAMILIES = {
-    PRIMARY: Platform.OS === 'android' ? 'Roboto' : 'OpenSansRegular',
-    BOLD: Platform.OS === 'android' ? 'Roboto' : 'OpenSansBold',
-    ITALIC: Platform.OS === 'android' ? 'Roboto' : 'HelveticaNeue-Italic',
+    PRIMARY: Platform.OS === 'web'
+        ? "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+        : Platform.OS === 'android' ? 'Roboto' : 'OpenSansRegular',
+    BOLD: Platform.OS === 'web'
+        ? "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+        : Platform.OS === 'android' ? 'Roboto' : 'OpenSansBold',
+    ITALIC: Platform.OS === 'web'
+        ? "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+        : Platform.OS === 'android' ? 'Roboto' : 'HelveticaNeue-Italic',
 };
 
 export const FONT_SIZES = {

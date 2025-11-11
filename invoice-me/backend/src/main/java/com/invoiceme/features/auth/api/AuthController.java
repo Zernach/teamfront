@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Base64;
 import java.util.UUID;
 
@@ -116,6 +117,69 @@ public class AuthController {
                 "Token refresh endpoint not yet implemented",
                 "/api/v1/auth/refresh"
             ));
+    }
+    
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
+        try {
+            // Extract Authorization header
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse(
+                        "UNAUTHORIZED",
+                        "Missing or invalid Authorization header",
+                        "/api/v1/auth/me"
+                    ));
+            }
+            
+            // Extract token
+            String token = authHeader.substring(7); // Remove "Bearer " prefix
+            
+            // Decode token (current implementation uses base64 encoded email:timestamp)
+            String decodedPayload;
+            try {
+                byte[] decodedBytes = Base64.getDecoder().decode(token);
+                decodedPayload = new String(decodedBytes);
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse(
+                        "UNAUTHORIZED",
+                        "Invalid token format",
+                        "/api/v1/auth/me"
+                    ));
+            }
+            
+            // Extract email from token (format: email:timestamp)
+            String email;
+            if (decodedPayload.contains(":")) {
+                email = decodedPayload.substring(0, decodedPayload.indexOf(":"));
+            } else {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse(
+                        "UNAUTHORIZED",
+                        "Invalid token payload",
+                        "/api/v1/auth/me"
+                    ));
+            }
+            
+            // Create user info response
+            // TODO: In production, look up user from database using email
+            LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo();
+            userInfo.setId(UUID.nameUUIDFromBytes(email.getBytes()).toString()); // Generate consistent ID from email
+            userInfo.setEmail(email);
+            userInfo.setFullName("User"); // TODO: Get from database
+            userInfo.setRole("USER"); // TODO: Get from database
+            
+            return ResponseEntity.ok(userInfo);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse(
+                    "INTERNAL_SERVER_ERROR",
+                    "An unexpected error occurred",
+                    "/api/v1/auth/me"
+                ));
+        }
     }
     
     // Inner classes for request/response DTOs

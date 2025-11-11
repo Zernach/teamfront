@@ -11,6 +11,7 @@ import com.rapidphotoupload.domain.aggregates.User;
 import com.rapidphotoupload.domain.repositories.UserRepository;
 import com.rapidphotoupload.domain.valueobjects.*;
 import com.rapidphotoupload.infrastructure.security.JwtAuthenticationFilter;
+import com.rapidphotoupload.infrastructure.security.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -34,10 +35,12 @@ public class AuthController {
     
     private final CommandDispatcher commandDispatcher;
     private final UserRepository userRepository;
+    private final JwtService jwtService;
     
-    public AuthController(CommandDispatcher commandDispatcher, UserRepository userRepository) {
+    public AuthController(CommandDispatcher commandDispatcher, UserRepository userRepository, JwtService jwtService) {
         this.commandDispatcher = commandDispatcher;
         this.userRepository = userRepository;
+        this.jwtService = jwtService;
     }
     
     @PostMapping("/register")
@@ -212,6 +215,80 @@ public class AuthController {
                 e.getMessage(),
                 httpRequest.getRequestURI()
             ));
+        }
+    }
+    
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(HttpServletRequest httpRequest) {
+        try {
+            // Extract Authorization header
+            String authHeader = httpRequest.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse(
+                        "UNAUTHORIZED",
+                        "Missing or invalid Authorization header",
+                        httpRequest.getRequestURI()
+                    ));
+            }
+            
+            // Extract token
+            String token = authHeader.substring(7); // Remove "Bearer " prefix
+            
+            // Validate token
+            if (jwtService.isTokenExpired(token)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse(
+                        "UNAUTHORIZED",
+                        "Token has expired",
+                        httpRequest.getRequestURI()
+                    ));
+            }
+            
+            // Extract user ID from token
+            String userIdStr;
+            try {
+                userIdStr = jwtService.extractUserId(token);
+            } catch (Exception e) {
+                logger.error("Failed to extract user ID from token", e);
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse(
+                        "UNAUTHORIZED",
+                        "Invalid token",
+                        httpRequest.getRequestURI()
+                    ));
+            }
+            
+            if (userIdStr == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ErrorResponse(
+                        "UNAUTHORIZED",
+                        "Token does not contain user ID",
+                        httpRequest.getRequestURI()
+                    ));
+            }
+            
+            // Look up user
+            UserId userId = UserId.from(UUID.fromString(userIdStr));
+            User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+            
+            // Return user info
+            AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(
+                user.getId().getValue(),
+                user.getUsername().getValue(),
+                user.getEmail().getValue()
+            );
+            
+            return ResponseEntity.ok(userInfo);
+        } catch (Exception e) {
+            logger.error("Failed to get current user", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse(
+                    "INTERNAL_SERVER_ERROR",
+                    "An unexpected error occurred",
+                    httpRequest.getRequestURI()
+                ));
         }
     }
 }

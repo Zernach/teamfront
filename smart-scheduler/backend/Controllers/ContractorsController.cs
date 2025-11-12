@@ -13,10 +13,12 @@ namespace SmartScheduler.Controllers;
 public class ContractorsController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly ILogger<ContractorsController> _logger;
 
-    public ContractorsController(IMediator mediator)
+    public ContractorsController(IMediator mediator, ILogger<ContractorsController> logger)
     {
         _mediator = mediator;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -33,21 +35,35 @@ public class ContractorsController : ControllerBase
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var query = new ListContractorsQuery
-        {
-            Name = name,
-            Type = type,
-            MinRating = minRating,
-            MaxRating = maxRating,
-            City = city,
-            State = state,
-            IncludeInactive = includeInactive,
-            Page = page,
-            PageSize = pageSize
-        };
+        var requestId = HttpContext.Items["RequestId"]?.ToString() ?? "unknown";
+        _logger.LogInformation("[RequestId: {RequestId}] ListContractors called with name={Name}, type={Type}, page={Page}, pageSize={PageSize}",
+            requestId, name, type, page, pageSize);
         
-        var result = await _mediator.Send(query, cancellationToken);
-        return Ok(result);
+        try
+        {
+            var query = new ListContractorsQuery
+            {
+                Name = name,
+                Type = type,
+                MinRating = minRating,
+                MaxRating = maxRating,
+                City = city,
+                State = state,
+                IncludeInactive = includeInactive,
+                Page = page,
+                PageSize = pageSize
+            };
+            
+            var result = await _mediator.Send(query, cancellationToken);
+            _logger.LogInformation("[RequestId: {RequestId}] ListContractors completed successfully, returned {Count} items",
+                requestId, result.Data.Count);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[RequestId: {RequestId}] Error in ListContractors", requestId);
+            throw;
+        }
     }
 
     [HttpPost]

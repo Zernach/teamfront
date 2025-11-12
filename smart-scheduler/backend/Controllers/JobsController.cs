@@ -12,10 +12,12 @@ namespace SmartScheduler.Controllers;
 public class JobsController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly ILogger<JobsController> _logger;
 
-    public JobsController(IMediator mediator)
+    public JobsController(IMediator mediator, ILogger<JobsController> logger)
     {
         _mediator = mediator;
+        _logger = logger;
     }
 
     [HttpGet]
@@ -30,19 +32,33 @@ public class JobsController : ControllerBase
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var query = new ListJobsQuery
+        var requestId = HttpContext.Items["RequestId"]?.ToString() ?? "unknown";
+        _logger.LogInformation("[RequestId: {RequestId}] ListJobs called with search={Search}, status={Status}, type={Type}, page={Page}, pageSize={PageSize}",
+            requestId, search, status, type, page, pageSize);
+        
+        try
         {
-            Search = search,
-            Status = status,
-            Type = type,
-            StartDate = startDate,
-            EndDate = endDate,
-            Page = page,
-            PageSize = pageSize
-        };
+            var query = new ListJobsQuery
+            {
+                Search = search,
+                Status = status,
+                Type = type,
+                StartDate = startDate,
+                EndDate = endDate,
+                Page = page,
+                PageSize = pageSize
+            };
 
-        var result = await _mediator.Send(query, cancellationToken);
-        return Ok(result);
+            var result = await _mediator.Send(query, cancellationToken);
+            _logger.LogInformation("[RequestId: {RequestId}] ListJobs completed successfully, returned {Count} items",
+                requestId, result.Data.Count);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[RequestId: {RequestId}] Error in ListJobs", requestId);
+            throw;
+        }
     }
 
     [HttpPost]
@@ -52,11 +68,24 @@ public class JobsController : ControllerBase
         [FromBody] CreateJobCommand command,
         CancellationToken cancellationToken)
     {
-        var response = await _mediator.Send(command, cancellationToken);
-        return CreatedAtAction(
-            nameof(GetJob),
-            new { id = response.Id },
-            response);
+        var requestId = HttpContext.Items["RequestId"]?.ToString() ?? "unknown";
+        _logger.LogInformation("[RequestId: {RequestId}] CreateJob called", requestId);
+        
+        try
+        {
+            var response = await _mediator.Send(command, cancellationToken);
+            _logger.LogInformation("[RequestId: {RequestId}] CreateJob completed successfully, created job {JobId}",
+                requestId, response.Id);
+            return CreatedAtAction(
+                nameof(GetJob),
+                new { id = response.Id },
+                response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[RequestId: {RequestId}] Error in CreateJob", requestId);
+            throw;
+        }
     }
 
     [HttpGet("{id}")]
@@ -66,13 +95,28 @@ public class JobsController : ControllerBase
         Guid id,
         CancellationToken cancellationToken)
     {
-        var query = new GetJobByIdQuery { Id = id };
-        var job = await _mediator.Send(query, cancellationToken);
+        var requestId = HttpContext.Items["RequestId"]?.ToString() ?? "unknown";
+        _logger.LogInformation("[RequestId: {RequestId}] GetJob called with id={JobId}", requestId, id);
+        
+        try
+        {
+            var query = new GetJobByIdQuery { Id = id };
+            var job = await _mediator.Send(query, cancellationToken);
 
-        if (job == null)
-            return NotFound();
+            if (job == null)
+            {
+                _logger.LogWarning("[RequestId: {RequestId}] GetJob: Job {JobId} not found", requestId, id);
+                return NotFound();
+            }
 
-        return Ok(job);
+            _logger.LogInformation("[RequestId: {RequestId}] GetJob completed successfully for job {JobId}", requestId, id);
+            return Ok(job);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[RequestId: {RequestId}] Error in GetJob for job {JobId}", requestId, id);
+            throw;
+        }
     }
 }
 

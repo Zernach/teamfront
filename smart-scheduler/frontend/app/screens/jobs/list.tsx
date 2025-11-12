@@ -12,6 +12,7 @@ import { jobService, JobListItem, JobType, JobStatus, Priority, PagedResult } fr
 import { PADDING_SIZES } from 'constants/styles/commonStyles';
 import { Screen } from 'components/screen';
 import { LoadingSpinner } from 'components/loading-spinner/loading-spinner';
+import { useDebouncedValue } from 'hooks/useDebouncedValue';
 
 export default function JobListScreen() {
   const router = useRouter();
@@ -19,16 +20,17 @@ export default function JobListScreen() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [pagination, setPagination] = useState({ page: 1, pageSize: 20, totalPages: 1 });
+  const debouncedSearch = useDebouncedValue(search, 300);
 
   useEffect(() => {
     loadJobs();
-  }, [search]);
+  }, [debouncedSearch]);
 
   const loadJobs = async (page = 1) => {
     setLoading(true);
     try {
       const result: PagedResult<JobListItem> = await jobService.getAll({
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         page,
         pageSize: 20,
       });

@@ -12,6 +12,7 @@ import { ContractorListItem, ContractorType, PagedResult } from 'services/types/
 import { PADDING_SIZES } from 'constants/styles/commonStyles';
 import { Feather } from '@expo/vector-icons';
 import { Screen } from 'components/screen';
+import { useDebouncedValue } from 'hooks/useDebouncedValue';
 
 export default function ContractorListScreen() {
   const router = useRouter();
@@ -19,22 +20,23 @@ export default function ContractorListScreen() {
   const [loading, setLoading] = useState(true);
   const [searchName, setSearchName] = useState('');
   const [pagination, setPagination] = useState({ page: 1, pageSize: 20, totalPages: 1 });
+  const debouncedSearchName = useDebouncedValue(searchName, 300);
 
   useEffect(() => {
     loadContractors();
-  }, [searchName]);
+  }, [debouncedSearchName]);
 
   const loadContractors = async (page = 1) => {
     setLoading(true);
     try {
       const result: PagedResult<ContractorListItem> = await contractorService.listContractors({
-        name: searchName || undefined,
+        name: debouncedSearchName || undefined,
         page,
         pageSize: 20,
       });
-      setContractors(result.items);
+      setContractors(result.data);
       setPagination({
-        page: result.page,
+        page: result.currentPage,
         pageSize: result.pageSize,
         totalPages: result.totalPages,
       });

@@ -3,11 +3,12 @@
  * Environment variables can be set during build time with EXPO_PUBLIC_ prefix
  */
 
-// Production Elastic Beanstalk backend URL
-const PRODUCTION_API_URL = 'https://teamfront-smart-scheduler-archlife.us-west-1.elasticbeanstalk.com/api';
+// Production Elastic Beanstalk backend URL - Using HTTPS
+const PRODUCTION_API_URL = 'https://api.teamfront-smart-scheduler.archlife.org';
 
 // Development/local backend URL (used when running locally)
-const DEVELOPMENT_API_URL = 'http://localhost:5001/api';
+// Note: Backend runs on port 5001 to avoid conflict with invoice-me (which uses 5000)
+const DEVELOPMENT_API_URL = 'http://localhost:5001';
 
 /**
  * Check if we're running in development mode
@@ -45,7 +46,15 @@ const isDevelopment = (): boolean => {
 export const getApiUrl = (): string => {
     // Explicit environment variable override (highest priority)
     if (process.env.EXPO_PUBLIC_API_URL) {
-        return process.env.EXPO_PUBLIC_API_URL;
+        const url = process.env.EXPO_PUBLIC_API_URL;
+        // Warn if using port 5000 in development (backend uses 5001)
+        if (isDevelopment() && url.includes(':5000') && url.includes('localhost')) {
+            console.warn(
+                '[API Config] WARNING: EXPO_PUBLIC_API_URL is set to port 5000, ' +
+                'but the backend runs on port 5001. Please update to http://localhost:5001'
+            );
+        }
+        return url;
     }
 
     // Use localhost in development mode

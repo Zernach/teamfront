@@ -51,10 +51,15 @@
 ## Setup Instructions
 
 1. **Environment Configuration**
-   Create `.env` file in frontend directory:
+   Create `.env` file in frontend directory (optional - defaults to port 5001):
    ```
-   EXPO_PUBLIC_API_URL=http://localhost:5000
+   EXPO_PUBLIC_COGNITO_USER_POOL_ID=us-west-1_5kNwPlpbx
+   EXPO_PUBLIC_COGNITO_CLIENT_ID=56iq8v0deq2cer2kq5e9jh44qq
+   EXPO_PUBLIC_COGNITO_REGION=us-west-1
    ```
+   
+   **Note**: The API URL defaults to `http://localhost:5001` in development mode. 
+   Only set `EXPO_PUBLIC_API_URL` if you need to override this default.
 
 2. **Install Dependencies** (if needed)
    ```bash

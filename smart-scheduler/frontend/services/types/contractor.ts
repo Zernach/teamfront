@@ -88,9 +88,9 @@ export interface UpdateContractorRequest {
 }
 
 export interface PagedResult<T> {
-  items: T[];
+  data: T[];
   totalCount: number;
-  page: number;
+  currentPage: number;
   pageSize: number;
   totalPages: number;
 }

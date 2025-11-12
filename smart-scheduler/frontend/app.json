@@ -34,7 +34,7 @@
       [
         "expo-router",
         {
-          "origin": "http://teamfront-smart-scheduler-frontend.s3-website-us-west-1.amazonaws.com"
+          "origin": "https://teamfront-smart-scheduler-frontend.s3-website-us-west-1.amazonaws.com"
         }
       ],
       "expo-dev-client"

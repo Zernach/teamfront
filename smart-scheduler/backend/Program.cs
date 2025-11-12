@@ -2,11 +2,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
+using System.Data.Common;
 using SmartScheduler.Data;
 using SmartScheduler.Services;
+using SmartScheduler.Middleware;
 using System.Reflection;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using SmartScheduler.Logging;
+using SmartScheduler.Converters;
+using MediatR;
+using Npgsql;
 
 // Set default environment to Local if not specified
 var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
@@ -32,61 +38,33 @@ if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
 }
 
 // Add services to the container
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<ApiLoggingFilter>();
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.WriteIndented = false;
+        // Add TimeSpan converter to handle duration strings like "04:00:00"
+        options.JsonSerializerOptions.Converters.Add(new TimeSpanJsonConverter());
     });
 
 // Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configure CORS
+// Configure CORS - Allow ALL origins including CloudFront - completely open CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.SetIsOriginAllowed(origin =>
-        {
-            if (string.IsNullOrEmpty(origin))
-                return false;
-            
-            // Allow localhost origins (any port)
-            if (origin.StartsWith("http://localhost:", StringComparison.OrdinalIgnoreCase))
-                return true;
-            
-            if (origin.StartsWith("http://127.0.0.1:", StringComparison.OrdinalIgnoreCase))
-                return true;
-            
-            // Allow local network IPs (for mobile device testing)
-            if (origin.StartsWith("http://192.168.", StringComparison.OrdinalIgnoreCase))
-                return true;
-            
-            if (origin.StartsWith("http://10.0.", StringComparison.OrdinalIgnoreCase))
-                return true;
-            
-            if (origin.StartsWith("http://172.", StringComparison.OrdinalIgnoreCase))
-                return true;
-            
-            // Allow S3 website origins
-            if (origin.Contains("teamfront-smart-scheduler-frontend.s3-website", StringComparison.OrdinalIgnoreCase))
-                return true;
-            
-            // Allow CloudFront distributions
-            if (origin.EndsWith(".cloudfront.net", StringComparison.OrdinalIgnoreCase))
-                return true;
-            
-            // Explicit CloudFront distribution for smart-scheduler
-            if (origin.Equals("https://d1it88z15qm1m8.cloudfront.net", StringComparison.OrdinalIgnoreCase))
-                return true;
-            
-            return false;
-        })
-        .AllowAnyMethod()
-        .AllowAnyHeader()
-        .AllowCredentials();
+        policy.SetIsOriginAllowed(_ => true) // Allow ALL origins including CloudFront
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .WithExposedHeaders("*") // Expose all headers including CloudFront headers
+              .SetPreflightMaxAge(TimeSpan.FromHours(1)); // Cache preflight requests for 1 hour
+        // Note: AllowCredentials() is removed to allow "*" pattern and make API completely public
     });
 });
 
@@ -105,6 +83,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // Add MediatR
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
 
 // Add FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
@@ -138,7 +117,9 @@ var jwksUrl = $"{cognitoIssuer}/.well-known/jwks.json";
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    // Don't challenge by default - allow anonymous access
+    // Only challenge when explicitly required by [Authorize] attribute
+    options.DefaultChallengeScheme = null;
 })
 .AddJwtBearer(options =>
 {
@@ -164,6 +145,15 @@ builder.Services.AddAuthentication(options =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             logger.LogWarning("Authentication failed: {Error}", context.Exception.Message);
+            // Don't fail the request - allow it to proceed as anonymous
+            context.NoResult();
+            return Task.CompletedTask;
+        },
+        OnChallenge = context =>
+        {
+            // Don't challenge by default - allow anonymous access
+            // Only challenge when explicitly required
+            context.HandleResponse();
             return Task.CompletedTask;
         },
         OnTokenValidated = context =>
@@ -175,57 +165,192 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddAuthorization();
+// Configure authorization to allow all requests by default - completely public API
+builder.Services.AddAuthorization(options =>
+{
+    // Create a single allow-all policy and assign it to both default and fallback
+    var allowAllPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAssertion(_ => true) // Always allow - no authentication required
+        .Build();
+
+    // Set default policy to allow all (no authentication required)
+    options.DefaultPolicy = allowAllPolicy;
+
+    // Ensure the fallback policy also allows anonymous access for endpoints without explicit metadata
+    options.FallbackPolicy = allowAllPolicy;
+});
 
 var app = builder.Build();
 
-// Ensure database is created and migrations are applied
-using (var scope = app.Services.CreateScope())
+// Apply migrations with handling for existing tables
+await ApplyMigrationsAsync(app);
+
+static async Task ApplyMigrationsAsync(WebApplication app)
 {
+    using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
-        // Ensure database can connect
-        if (!dbContext.Database.CanConnect())
+        logger.LogInformation("Checking database migration status...");
+        
+        // Check if migration history table exists
+        var connection = dbContext.Database.GetDbConnection();
+        if (connection.State != System.Data.ConnectionState.Open)
         {
-            logger.LogInformation("Database does not exist. Creating database...");
-            dbContext.Database.EnsureCreated();
+            await connection.OpenAsync();
+        }
+        
+        using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.tables 
+                WHERE table_schema = 'public' AND table_name = '__EFMigrationsHistory'
+            )";
+        var historyTableExists = (bool)(await command.ExecuteScalarAsync())!;
+        
+        if (!historyTableExists)
+        {
+            // Check if tables already exist (indicating manual setup or previous migration)
+            command.CommandText = @"
+                SELECT EXISTS (
+                    SELECT 1 FROM information_schema.tables 
+                    WHERE table_schema = 'public' AND table_name = 'contractors'
+                )";
+            var contractorsTableExists = (bool)(await command.ExecuteScalarAsync())!;
+            
+            if (contractorsTableExists)
+            {
+                logger.LogWarning("Database tables exist but migration history is missing. " +
+                    "Creating migration history table and marking initial migration as applied...");
+                
+                // Create migration history table
+                command.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS ""__EFMigrationsHistory"" (
+                        ""MigrationId"" character varying(150) NOT NULL,
+                        ""ProductVersion"" character varying(32) NOT NULL,
+                        CONSTRAINT ""PK___EFMigrationsHistory"" PRIMARY KEY (""MigrationId"")
+                    )";
+                await command.ExecuteNonQueryAsync();
+                
+                // Mark the initial migration as applied
+                command.CommandText = @"
+                    INSERT INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"")
+                    VALUES ('20251112185554_InitialCreate', '8.0.0')
+                    ON CONFLICT (""MigrationId"") DO NOTHING";
+                await command.ExecuteNonQueryAsync();
+                
+                logger.LogInformation("Migration history initialized. Existing tables are now tracked.");
+            }
+            else
+            {
+                // No tables exist, apply migrations normally
+                logger.LogInformation("Applying database migrations...");
+                await ApplyMigrationsWithErrorHandlingAsync(dbContext, logger, connection);
+                logger.LogInformation("Database migrations applied successfully.");
+            }
         }
         else
         {
-            // Check if users table exists
-            var connection = dbContext.Database.GetDbConnection();
-            if (connection.State != ConnectionState.Open)
-            {
-                connection.Open();
-            }
-            using var command = connection.CreateCommand();
-            command.CommandText = "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users')";
-            var tableExists = command.ExecuteScalar();
+            // Migration history exists, check if we need to apply migrations
+            command.CommandText = @"
+                SELECT COUNT(*) FROM ""__EFMigrationsHistory""
+                WHERE ""MigrationId"" = '20251112185554_InitialCreate'";
+            var migrationApplied = Convert.ToInt32(await command.ExecuteScalarAsync()) > 0;
             
-            if (tableExists == null || !(bool)tableExists)
+            if (!migrationApplied)
             {
-                logger.LogInformation("Users table does not exist. Creating users table...");
-                // Create users table manually
-                dbContext.Database.ExecuteSqlRaw(@"
-                    CREATE TABLE IF NOT EXISTS users (
-                        id UUID PRIMARY KEY,
-                        username VARCHAR(50) NOT NULL UNIQUE,
-                        email VARCHAR(255) NOT NULL UNIQUE,
-                        password_hash VARCHAR(255) NOT NULL,
-                        created_at TIMESTAMP NOT NULL,
-                        updated_at TIMESTAMP NOT NULL
-                    );
-                    CREATE INDEX IF NOT EXISTS ix_users_username ON users(username);
-                    CREATE INDEX IF NOT EXISTS ix_users_email ON users(email);
-                ");
+                logger.LogInformation("Applying database migrations...");
+                await ApplyMigrationsWithErrorHandlingAsync(dbContext, logger, connection);
+                logger.LogInformation("Database migrations applied successfully.");
+            }
+            else
+            {
+                logger.LogInformation("All migrations are already applied.");
             }
         }
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "An error occurred while ensuring database is created.");
+        logger.LogError(ex, "An error occurred while applying database migrations.");
+        // Don't throw - allow application to start even if migrations fail
+        // This is important for production environments where the database might be in an inconsistent state
+        logger.LogWarning("Application will continue to start despite migration errors. " +
+            "Please verify database schema manually if you encounter issues.");
+    }
+}
+
+static async Task ApplyMigrationsWithErrorHandlingAsync(
+    ApplicationDbContext dbContext, 
+    ILogger logger, 
+    DbConnection connection)
+{
+    try
+    {
+        await dbContext.Database.MigrateAsync();
+    }
+    catch (PostgresException pgEx) when (pgEx.SqlState == "42P07") // relation already exists
+    {
+        logger.LogWarning("Migration failed because table already exists (PostgreSQL error 42P07). " +
+            "This usually means tables were created manually or from a previous migration. " +
+            "Verifying table existence and updating migration history...");
+        
+        // Check if all required tables exist
+        var requiredTables = new[] { "contractors", "jobs", "assignments", "contractor_working_hours", "users" };
+        var existingTables = new List<string>();
+        
+        using var command = connection.CreateCommand();
+        foreach (var tableName in requiredTables)
+        {
+            command.CommandText = $@"
+                SELECT EXISTS (
+                    SELECT 1 FROM information_schema.tables 
+                    WHERE table_schema = 'public' AND table_name = '{tableName}'
+                )";
+            var exists = (bool)(await command.ExecuteScalarAsync())!;
+            if (exists)
+            {
+                existingTables.Add(tableName);
+            }
+        }
+        
+        if (existingTables.Count == requiredTables.Length)
+        {
+            logger.LogInformation("All required tables exist. Marking migration as applied...");
+            
+            // Ensure migration history table exists
+            command.CommandText = @"
+                CREATE TABLE IF NOT EXISTS ""__EFMigrationsHistory"" (
+                    ""MigrationId"" character varying(150) NOT NULL,
+                    ""ProductVersion"" character varying(32) NOT NULL,
+                    CONSTRAINT ""PK___EFMigrationsHistory"" PRIMARY KEY (""MigrationId"")
+                )";
+            await command.ExecuteNonQueryAsync();
+            
+            // Mark the initial migration as applied
+            command.CommandText = @"
+                INSERT INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"")
+                VALUES ('20251112185554_InitialCreate', '8.0.0')
+                ON CONFLICT (""MigrationId"") DO NOTHING";
+            await command.ExecuteNonQueryAsync();
+            
+            logger.LogInformation("Migration history updated. Database schema is consistent.");
+        }
+        else
+        {
+            logger.LogError("Some required tables are missing. Existing tables: {ExistingTables}. " +
+                "Required tables: {RequiredTables}. Please check your database schema.",
+                string.Join(", ", existingTables),
+                string.Join(", ", requiredTables));
+            // Re-throw if critical tables are missing
+            throw;
+        }
+    }
+    catch (PostgresException pgEx)
+    {
+        logger.LogError(pgEx, "PostgreSQL error occurred during migration: {SqlState} - {MessageText}",
+            pgEx.SqlState, pgEx.MessageText);
+        // Re-throw non-relation-exists errors as they might be critical
         throw;
     }
 }
@@ -237,12 +362,59 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Request logging middleware (should be early in pipeline to catch all requests)
+app.UseMiddleware<RequestLoggingMiddleware>();
+
 // Enable CORS (must be before UseAuthentication, UseAuthorization and MapControllers)
 app.UseCors("AllowFrontend");
+
+// Add CORS logging middleware
+app.Use(async (context, next) =>
+{
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    var origin = context.Request.Headers["Origin"].ToString();
+    var method = context.Request.Method;
+    
+    if (method == "OPTIONS")
+    {
+        logger.LogInformation("CORS Preflight: {Method} {Path} from Origin: {Origin}", 
+            method, context.Request.Path, origin);
+    }
+    else if (!string.IsNullOrEmpty(origin))
+    {
+        logger.LogDebug("CORS Request: {Method} {Path} from Origin: {Origin}", 
+            method, context.Request.Path, origin);
+    }
+    
+    await next();
+});
 
 // Note: HTTPS redirection disabled for Elastic Beanstalk (handled by load balancer)
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Add route resolution logging
+app.Use(async (context, next) =>
+{
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    var requestId = context.Items["RequestId"]?.ToString() ?? "unknown";
+    
+    await next();
+    
+    // Log route resolution after the request is processed
+    var routeData = context.GetRouteData();
+    if (routeData != null && routeData.Values.Any())
+    {
+        logger.LogDebug("[RequestId: {RequestId}] Route resolved: {RouteValues}",
+            requestId, string.Join(", ", routeData.Values.Select(kvp => $"{kvp.Key}={kvp.Value}")));
+    }
+    else if (context.Response.StatusCode == 404)
+    {
+        logger.LogWarning("[RequestId: {RequestId}] Route NOT resolved for {Method} {Path}",
+            requestId, context.Request.Method, context.Request.Path);
+    }
+});
+
 app.MapControllers();
 
 // Health check endpoint

@@ -12,10 +12,12 @@ namespace SmartScheduler.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IMediator mediator)
+    public AuthController(IMediator mediator, ILogger<AuthController> logger)
     {
         _mediator = mediator;
+        _logger = logger;
     }
 
     [HttpPost("register")]
@@ -41,11 +43,14 @@ public class AuthController : ControllerBase
     }
 
     [HttpGet("me")]
-    [Authorize]
+    [AllowAnonymous] // Allow public access - no authentication required
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public ActionResult GetCurrentUser()
     {
+        var requestId = HttpContext.Items["RequestId"]?.ToString() ?? "unknown";
+        _logger.LogInformation("[RequestId: {RequestId}] GetCurrentUser called, Authenticated={Authenticated}",
+            requestId, User?.Identity?.IsAuthenticated ?? false);
+        
         try
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
@@ -55,7 +60,10 @@ public class AuthController : ControllerBase
                 ?? User.FindFirst("email")?.Value;
             var username = User.FindFirst(ClaimTypes.Name)?.Value 
                 ?? User.FindFirst("cognito:username")?.Value
-                ?? email?.Split('@')[0];
+                ?? (email != null ? email.Split('@')[0] : null);
+
+            _logger.LogInformation("[RequestId: {RequestId}] GetCurrentUser completed, userId={UserId}, email={Email}",
+                requestId, userId, email);
 
             return Ok(new
             {
@@ -66,6 +74,7 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "[RequestId: {RequestId}] Error in GetCurrentUser", requestId);
             return StatusCode(500, new { message = "An error occurred while getting user info", error = ex.Message });
         }
     }

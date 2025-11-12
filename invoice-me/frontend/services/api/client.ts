@@ -1,6 +1,7 @@
 // services/api/client.ts
 import { API_CONFIG, ApiException } from './config';
 import { fetchAuthSession } from 'aws-amplify/auth';
+import { store } from '../../store';
 
 class ApiClient {
   private baseURL: string;
@@ -16,16 +17,24 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     // Get Cognito access token and add to headers
+    // Primary: Get token from Redux state (reliable, immediately available after login)
+    // Fallback: Get token from Cognito session (for edge cases)
     let token: string | null = null;
-    try {
-      const session = await fetchAuthSession();
-      token = session.tokens?.accessToken?.toString() || null;
-    } catch (error) {
-      console.warn('Failed to get Cognito session:', error);
+    const reduxToken = store.getState().auth.token;
+    if (reduxToken) {
+      token = reduxToken;
+    } else {
+      try {
+        const session = await fetchAuthSession();
+        token = session.tokens?.accessToken?.toString() || null;
+      } catch (error) {
+        console.warn('Failed to get Cognito session:', error);
+      }
     }
 
     const headers: Record<string, string> = {
@@ -84,7 +93,7 @@ class ApiClient {
       return await response.json();
     } catch (error) {
       clearTimeout(timeoutId);
-      
+
       if (error instanceof ApiException) {
         throw error;
       }

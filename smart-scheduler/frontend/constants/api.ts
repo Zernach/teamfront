@@ -4,10 +4,10 @@
  */
 
 // Production Elastic Beanstalk backend URL
-const PRODUCTION_API_URL = 'https://teamfront-smart-scheduler-archlife.us-west-1.elasticbeanstalk.com';
+const PRODUCTION_API_URL = 'https://teamfront-smart-scheduler-archlife.us-west-1.elasticbeanstalk.com/api';
 
 // Development/local backend URL (used when running locally)
-const DEVELOPMENT_API_URL = 'http://localhost:5000';
+const DEVELOPMENT_API_URL = 'http://localhost:5001/api';
 
 /**
  * Check if we're running in development mode
@@ -21,19 +21,19 @@ const isDevelopment = (): boolean => {
         return true;
     }
 
-    // If EXPO_PUBLIC_ENV is not set, default to production for safety
-    // Only use __DEV__ or NODE_ENV if explicitly in development
-    if (process.env.EXPO_PUBLIC_ENV === undefined) {
-        return false; // Default to production when env var is not set
-    }
-
+    // If EXPO_PUBLIC_ENV is not set, check __DEV__ flag
     // __DEV__ is set by React Native/Expo in development mode
     if (typeof __DEV__ !== 'undefined') {
         return __DEV__ === true;
     }
 
     // Fallback to NODE_ENV check
-    return process.env.NODE_ENV === 'development';
+    if (process.env.NODE_ENV === 'development') {
+        return true;
+    }
+
+    // Final fallback: default to production for safety
+    return false;
 };
 
 /**
@@ -59,4 +59,10 @@ export const getApiUrl = (): string => {
 
 // Export constant for direct use
 export const API_BASE_URL = getApiUrl();
+
+// Log API configuration for debugging
+if (__DEV__) {
+    console.log('[API Config] Environment:', isDevelopment() ? 'Development' : 'Production');
+    console.log('[API Config] API URL:', API_BASE_URL);
+}
 

@@ -1,5 +1,6 @@
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { API_BASE_URL } from '../constants/api';
+import { store } from '../store';
 
 /**
  * API client helper that automatically adds Cognito authentication tokens to requests
@@ -13,8 +14,17 @@ class ApiClient {
 
   /**
    * Get the current Cognito access token
+   * Primary: Get token from Redux state (reliable, immediately available after login)
+   * Fallback: Get token from Cognito session (for edge cases)
    */
   private async getAuthToken(): Promise<string | null> {
+    // Primary: Get token from Redux state
+    const reduxToken = store.getState().auth.token;
+    if (reduxToken) {
+      return reduxToken;
+    }
+
+    // Fallback: Get token from Cognito session
     try {
       const session = await fetchAuthSession();
       return session.tokens?.accessToken?.toString() || null;
@@ -32,10 +42,10 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     // Get Cognito access token
     const token = await this.getAuthToken();
-    
+
     // Build headers
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -53,8 +63,8 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ 
-        message: response.statusText || 'Request failed' 
+      const error = await response.json().catch(() => ({
+        message: response.statusText || 'Request failed'
       }));
       throw new Error(error.message || `HTTP ${response.status}: ${response.statusText}`);
     }

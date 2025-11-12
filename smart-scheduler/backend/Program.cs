@@ -23,11 +23,11 @@ var options = new WebApplicationOptions
 var builder = WebApplication.CreateBuilder(options);
 
 // Configure port binding for Elastic Beanstalk
-// EB provides PORT environment variable, fallback to 5000 for local development
+// EB provides PORT environment variable, fallback to 5001 for local development (avoid conflict with invoice-me)
 // Only set UseUrls if ASPNETCORE_URLS is not already set
 if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
 {
-    var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+    var port = Environment.GetEnvironmentVariable("PORT") ?? "5001";
     builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 }
 
@@ -50,8 +50,24 @@ builder.Services.AddCors(options =>
     {
         policy.SetIsOriginAllowed(origin =>
         {
-            // Allow localhost origins
+            if (string.IsNullOrEmpty(origin))
+                return false;
+            
+            // Allow localhost origins (any port)
             if (origin.StartsWith("http://localhost:", StringComparison.OrdinalIgnoreCase))
+                return true;
+            
+            if (origin.StartsWith("http://127.0.0.1:", StringComparison.OrdinalIgnoreCase))
+                return true;
+            
+            // Allow local network IPs (for mobile device testing)
+            if (origin.StartsWith("http://192.168.", StringComparison.OrdinalIgnoreCase))
+                return true;
+            
+            if (origin.StartsWith("http://10.0.", StringComparison.OrdinalIgnoreCase))
+                return true;
+            
+            if (origin.StartsWith("http://172.", StringComparison.OrdinalIgnoreCase))
                 return true;
             
             // Allow S3 website origins
@@ -60,6 +76,10 @@ builder.Services.AddCors(options =>
             
             // Allow CloudFront distributions
             if (origin.EndsWith(".cloudfront.net", StringComparison.OrdinalIgnoreCase))
+                return true;
+            
+            // Explicit CloudFront distribution for smart-scheduler
+            if (origin.Equals("https://d1it88z15qm1m8.cloudfront.net", StringComparison.OrdinalIgnoreCase))
                 return true;
             
             return false;

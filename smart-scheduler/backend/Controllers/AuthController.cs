@@ -19,22 +19,24 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status410Gone)]
     public ActionResult Register([FromBody] RegisterRequest request)
     {
         // Registration is now handled by AWS Cognito on the frontend
-        return StatusCode(410, new { 
-            message = "Registration is now handled by AWS Cognito. Please use the frontend registration flow." 
+        return StatusCode(410, new {
+            message = "Registration is now handled by AWS Cognito. Please use the frontend registration flow."
         });
     }
 
     [HttpPost("login")]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status410Gone)]
     public ActionResult Login([FromBody] LoginRequest request)
     {
         // Login is now handled by AWS Cognito on the frontend
-        return StatusCode(410, new { 
-            message = "Login is now handled by AWS Cognito. Please use the frontend login flow." 
+        return StatusCode(410, new {
+            message = "Login is now handled by AWS Cognito. Please use the frontend login flow."
         });
     }
 

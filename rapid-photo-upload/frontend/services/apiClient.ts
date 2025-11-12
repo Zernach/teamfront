@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { Platform } from 'react-native';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { API_URL } from '../constants/api';
+import { store } from '../store';
 
 /**
  * API client configuration for rapid-photo-upload backend.
@@ -37,7 +37,7 @@ class ApiClient {
         // Don't set Content-Type for multipart/form-data - let axios set it with boundary
       },
     });
-    
+
     console.log('[ApiClient] Upload client baseURL:', API_URL);
     this.setupUploadInterceptors(uploadClient);
     return uploadClient;
@@ -47,12 +47,20 @@ class ApiClient {
     // Request interceptor - add Cognito auth token
     this.client.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
+        // Get Cognito access token and add to headers
+        // Primary: Get token from Redux state (reliable, immediately available after login)
+        // Fallback: Get token from Cognito session (for edge cases)
         let token: string | null = null;
-        try {
-          const session = await fetchAuthSession();
-          token = session.tokens?.accessToken?.toString() || null;
-        } catch (error) {
-          console.warn('[ApiClient] Failed to get Cognito session:', error);
+        const reduxToken = store.getState().auth.token;
+        if (reduxToken) {
+          token = reduxToken;
+        } else {
+          try {
+            const session = await fetchAuthSession();
+            token = session.tokens?.accessToken?.toString() || null;
+          } catch (error) {
+            console.warn('[ApiClient] Failed to get Cognito session:', error);
+          }
         }
 
         if (token && config.headers) {
@@ -80,7 +88,7 @@ class ApiClient {
         // Check if response is HTML (indicates Spring Security redirect or error)
         const contentType = response.headers['content-type'] || '';
         const responseData = response.data;
-        
+
         if (typeof responseData === 'string' && (
           responseData.trim().startsWith('<!DOCTYPE') ||
           responseData.trim().startsWith('<html') ||
@@ -105,9 +113,9 @@ class ApiClient {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
         // Don't attempt token refresh for auth endpoints (login, register, refresh)
-        const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
-                               originalRequest.url?.includes('/auth/register') ||
-                               originalRequest.url?.includes('/auth/refresh');
+        const isAuthEndpoint = originalRequest.url?.includes('/auth/login') ||
+          originalRequest.url?.includes('/auth/register') ||
+          originalRequest.url?.includes('/auth/refresh');
 
         // Handle 401 Unauthorized - attempt token refresh (but not for auth endpoints)
         if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
@@ -150,12 +158,20 @@ class ApiClient {
     // Request interceptor - add Cognito auth token
     client.interceptors.request.use(
       async (config: InternalAxiosRequestConfig) => {
+        // Get Cognito access token and add to headers
+        // Primary: Get token from Redux state (reliable, immediately available after login)
+        // Fallback: Get token from Cognito session (for edge cases)
         let token: string | null = null;
-        try {
-          const session = await fetchAuthSession();
-          token = session.tokens?.accessToken?.toString() || null;
-        } catch (error) {
-          console.warn('[ApiClient] Failed to get Cognito session for upload:', error);
+        const reduxToken = store.getState().auth.token;
+        if (reduxToken) {
+          token = reduxToken;
+        } else {
+          try {
+            const session = await fetchAuthSession();
+            token = session.tokens?.accessToken?.toString() || null;
+          } catch (error) {
+            console.warn('[ApiClient] Failed to get Cognito session for upload:', error);
+          }
         }
 
         if (token && config.headers) {
@@ -197,9 +213,9 @@ class ApiClient {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
         // Don't attempt token refresh for auth endpoints (login, register, refresh)
-        const isAuthEndpoint = originalRequest.url?.includes('/auth/login') || 
-                               originalRequest.url?.includes('/auth/register') ||
-                               originalRequest.url?.includes('/auth/refresh');
+        const isAuthEndpoint = originalRequest.url?.includes('/auth/login') ||
+          originalRequest.url?.includes('/auth/register') ||
+          originalRequest.url?.includes('/auth/refresh');
 
         // Handle 401 Unauthorized - attempt token refresh (but not for auth endpoints)
         if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
@@ -242,7 +258,7 @@ class ApiClient {
     this.refreshTokenPromise = (async () => {
       try {
         const session = await fetchAuthSession({ forceRefresh: true });
-        
+
         if (!session.tokens?.accessToken) {
           throw new Error('Failed to refresh access token');
         }

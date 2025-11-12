@@ -8,8 +8,8 @@ const PRODUCTION_API_URL = 'https://teamfront-rapid-photo-upload-archlife.us-wes
 const PRODUCTION_WS_URL = 'https://teamfront-rapid-photo-upload-archlife.us-west-1.elasticbeanstalk.com';
 
 // Development/local backend URL (used when running locally)
-const DEVELOPMENT_API_URL = 'http://localhost:8080/api/v1';
-const DEVELOPMENT_WS_URL = 'http://localhost:8080';
+const DEVELOPMENT_API_URL = 'http://localhost:5000/api/v1';
+const DEVELOPMENT_WS_URL = 'http://localhost:5000';
 
 /**
  * Check if we're running in development mode
@@ -23,19 +23,19 @@ const isDevelopment = (): boolean => {
         return true;
     }
 
-    // If EXPO_PUBLIC_ENV is not set, default to production for safety
-    // Only use __DEV__ or NODE_ENV if explicitly in development
-    if (process.env.EXPO_PUBLIC_ENV === undefined) {
-        return false; // Default to production when env var is not set
-    }
-
+    // If EXPO_PUBLIC_ENV is not set, check __DEV__ flag
     // __DEV__ is set by React Native/Expo in development mode
     if (typeof __DEV__ !== 'undefined') {
         return __DEV__ === true;
     }
 
     // Fallback to NODE_ENV check
-    return process.env.NODE_ENV === 'development';
+    if (process.env.NODE_ENV === 'development') {
+        return true;
+    }
+
+    // Final fallback: default to production for safety
+    return false;
 };
 
 /**
@@ -83,4 +83,11 @@ export const getWebSocketUrl = (): string => {
 // Export constants for direct use
 export const API_URL = getApiUrl();
 export const WS_URL = getWebSocketUrl();
+
+// Log API configuration for debugging
+if (__DEV__) {
+    console.log('[API Config] Environment:', isDevelopment() ? 'Development' : 'Production');
+    console.log('[API Config] API URL:', API_URL);
+    console.log('[API Config] WS URL:', WS_URL);
+}
 

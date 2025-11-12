@@ -82,14 +82,20 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Allow localhost origins for development and production origins
+        // Using origin patterns to support dynamic ports (e.g., Expo dev server)
         configuration.setAllowedOriginPatterns(List.of(
             "http://localhost:*",
             "http://127.0.0.1:*",
+            "http://192.168.*:*",  // Allow local network IPs (for mobile device testing)
+            "http://10.0.*:*",     // Allow local network IPs
+            "http://172.*:*",      // Allow local network IPs
             // Allow S3 website origins
             "http://teamfront-rapid-photo-upload-frontend.s3-website-us-west-1.amazonaws.com",
             "https://teamfront-rapid-photo-upload-frontend.s3-website-us-west-1.amazonaws.com",
             // Allow CloudFront distributions (any *.cloudfront.net)
-            "https://*.cloudfront.net"
+            "https://*.cloudfront.net",
+            // Explicit CloudFront distribution for rapid-photo-upload
+            "https://d2ujb1lb2gj847.cloudfront.net"
         ));
         
         // Allow all HTTP methods

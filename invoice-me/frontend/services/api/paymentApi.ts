@@ -26,7 +26,7 @@ export const paymentApi = {
     id: string,
     data: VoidPaymentRequest
   ): Promise<PaymentDetail> {
-    return apiClient.post<PaymentDetail>(`/api/v1/payments/${id}/void`, data);
+    return apiClient.post<PaymentDetail>(`/payments/${id}/void`, data);
   },
 };
 

@@ -1,5 +1,5 @@
 // app/invoices/[id].tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -21,16 +21,11 @@ export default function InvoiceDetailScreen() {
   const [invoice, setInvoice] = useState<InvoiceDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (id) {
-      loadInvoice();
-    }
-  }, [id]);
-
-  const loadInvoice = async () => {
+  const loadInvoice = useCallback(async () => {
+    if (!id) return;
     try {
       setLoading(true);
-      const data = await invoiceApi.getInvoiceById(id!);
+      const data = await invoiceApi.getInvoiceById(id);
       setInvoice(data);
     } catch (error) {
       console.error('Error loading invoice:', error);
@@ -39,7 +34,13 @@ export default function InvoiceDetailScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    if (id) {
+      loadInvoice();
+    }
+  }, [id, loadInvoice]);
 
   const handleMarkAsSent = async () => {
     if (!invoice) return;

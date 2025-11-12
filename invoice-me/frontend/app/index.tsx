@@ -6,25 +6,9 @@ import { Colors } from '../constants/colors';
 import { Spacing } from '../constants/spacing';
 import { Screen } from '../components/screen';
 import { CustomList } from '../components/custom-list/custom-list';
-import { useAppSelector, useAppDispatch } from '../hooks/redux';
-import { clearAuth } from '../store/authSlice';
-import { authApi } from '../services/api/authApi';
 import { router } from 'expo-router';
 
 export default function HomeScreen() {
-  const dispatch = useAppDispatch();
-  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
-
-  const handleSignOut = async () => {
-    try {
-      await authApi.logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      // Clear auth state - AuthGuard will automatically redirect to /auth/login
-      dispatch(clearAuth());
-    }
-  };
 
   return (
     <Screen style={styles.container}>
@@ -72,17 +56,6 @@ export default function HomeScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-
-        {isAuthenticated && (
-          <View style={styles.signOutContainer}>
-            <TouchableOpacity
-              style={styles.signOutButton}
-              onPress={handleSignOut}
-            >
-              <Text style={styles.signOutText}>Sign Out</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </CustomList>
     </Screen>
   );
@@ -136,24 +109,5 @@ const styles = StyleSheet.create({
   menuDescription: {
     fontSize: 14,
     color: Colors.textSecondary,
-  },
-  signOutContainer: {
-    padding: Spacing.md,
-    paddingBottom: Spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: Colors.divider,
-  },
-  signOutButton: {
-    backgroundColor: Colors.surface,
-    padding: Spacing.md,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-  },
-  signOutText: {
-    fontSize: 16,
-    color: Colors.error,
-    fontWeight: '500',
   },
 });

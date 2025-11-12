@@ -1,71 +1,61 @@
 package com.invoiceme.config;
 
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.proc.BadJOSEException;
-import com.nimbusds.jwt.JWTClaimsSet;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.http.HttpMethod;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.text.ParseException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * Security configuration for Cognito JWT token validation.
+ * Security configuration that COMPLETELY DISABLES all security - allows everything through.
+ * This is for proof of concept only - NO security restrictions whatsoever.
  */
 @Configuration
 @EnableWebSecurity
 @Profile("!test")
 public class SecurityConfig {
 
-    @Value("${aws.cognito.user-pool-id}")
-    private String userPoolId;
-
-    @Value("${aws.cognito.region:us-west-1}")
-    private String region;
-
-    @Autowired
-    private CognitoJwtValidator jwtValidator;
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            // Disable ALL security features
             .csrf(csrf -> csrf.disable())
+            .httpBasic(httpBasic -> httpBasic.disable())
+            .formLogin(formLogin -> formLogin.disable())
+            .logout(logout -> logout.disable())
+            .headers(headers -> headers.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow CORS preflight
-                .requestMatchers("/health").permitAll() // Health check endpoint
-                .requestMatchers("/").permitAll() // Root endpoint
-                .requestMatchers("/error").permitAll() // Error endpoint for JSON error responses
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(cognitoJwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+            // Allow ALL endpoints - NO restrictions whatsoever
+            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+            // Configure exception handling to allow everything (no 403s)
+            // Even if something goes wrong, just let it through
+            .exceptionHandling(exceptions -> {
+                exceptions.authenticationEntryPoint((request, response, authException) -> {
+                    // Don't block - just continue (this shouldn't be called with permitAll)
+                    // But if it is, just return 200 OK
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    response.setContentType("text/plain");
+                    response.getWriter().write("OK");
+                });
+                exceptions.accessDeniedHandler((request, response, accessDeniedException) -> {
+                    // Don't block - just continue (this shouldn't be called with permitAll)
+                    // But if it is, just return 200 OK
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    response.setContentType("text/plain");
+                    response.getWriter().write("OK");
+                });
+            });
 
         return http.build();
     }
@@ -74,31 +64,21 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow localhost origins for development and production origins
-        // Using origin patterns to support dynamic ports (e.g., Expo dev server)
-        configuration.setAllowedOriginPatterns(List.of(
-            "http://localhost:*",
-            "http://127.0.0.1:*",
-            "http://192.168.*:*",  // Allow local network IPs (for mobile device testing)
-            "http://10.0.*:*",     // Allow local network IPs
-            "http://172.*:*",      // Allow local network IPs
-            // Allow S3 website origins
-            "http://teamfront-invoice-me-frontend.s3-website-us-west-1.amazonaws.com",
-            "https://teamfront-invoice-me-frontend.s3-website-us-west-1.amazonaws.com",
-            // Allow CloudFront distributions (any *.cloudfront.net)
-            "https://*.cloudfront.net",
-            // Explicit CloudFront distribution for invoice-me
-            "https://d1t46ly28exlox.cloudfront.net"
-        ));
+        // Allow ALL origins including CloudFront - completely open CORS
+        // Note: Using "*" requires allowCredentials to be false per CORS spec
+        configuration.setAllowedOriginPatterns(List.of("*"));
         
         // Allow all HTTP methods
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"));
         
-        // Allow all headers
+        // Allow all headers including CloudFront-specific headers
         configuration.setAllowedHeaders(List.of("*"));
         
-        // Allow credentials (cookies, authorization headers)
-        configuration.setAllowCredentials(true);
+        // Expose all headers including CloudFront headers
+        configuration.setExposedHeaders(List.of("*"));
+        
+        // Disable credentials to allow "*" origin pattern (CORS requirement)
+        configuration.setAllowCredentials(false);
         
         // Cache preflight requests for 1 hour
         configuration.setMaxAge(3600L);
@@ -107,115 +87,4 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-
-    @Bean
-    public CognitoJwtAuthenticationFilter cognitoJwtAuthenticationFilter() {
-        return new CognitoJwtAuthenticationFilter(jwtValidator);
-    }
-
-    /**
-     * Filter to validate Cognito JWT tokens.
-     */
-    public static class CognitoJwtAuthenticationFilter extends OncePerRequestFilter {
-        private static final Logger logger = LoggerFactory.getLogger(CognitoJwtAuthenticationFilter.class);
-        private final CognitoJwtValidator jwtValidator;
-
-        public CognitoJwtAuthenticationFilter(CognitoJwtValidator jwtValidator) {
-            this.jwtValidator = jwtValidator;
-        }
-
-        @Override
-        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-                throws ServletException, IOException {
-            String path = request.getRequestURI();
-            
-            // Skip authentication for public endpoints
-            if (path.startsWith("/api/v1/auth/")) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-            String authHeader = request.getHeader("Authorization");
-            
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-            String token = authHeader.substring(7);
-
-            try {
-                JWTClaimsSet claimsSet = jwtValidator.validateToken(token);
-                
-                // Extract user information from token
-                String username = claimsSet.getSubject();
-                String email = claimsSet.getStringClaim("email");
-                
-                // Create authentication object
-                List<SimpleGrantedAuthority> authorities = Collections.singletonList(
-                    new SimpleGrantedAuthority("ROLE_USER")
-                );
-                
-                Authentication authentication = new CognitoAuthenticationToken(username, email, authorities);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                
-            } catch (Exception e) {
-                logger.warn("Invalid Cognito token: " + e.getMessage());
-            }
-
-            filterChain.doFilter(request, response);
-        }
-    }
-
-    /**
-     * Simple authentication token for Cognito.
-     */
-    public static class CognitoAuthenticationToken implements Authentication {
-        private final String principal;
-        private final String email;
-        private final List<SimpleGrantedAuthority> authorities;
-        private boolean authenticated = true;
-
-        public CognitoAuthenticationToken(String principal, String email, List<SimpleGrantedAuthority> authorities) {
-            this.principal = principal;
-            this.email = email;
-            this.authorities = authorities;
-        }
-
-        @Override
-        public String getName() {
-            return principal;
-        }
-
-        @Override
-        public java.util.Collection<SimpleGrantedAuthority> getAuthorities() {
-            return authorities;
-        }
-
-        @Override
-        public Object getCredentials() {
-            return null;
-        }
-
-        @Override
-        public Object getDetails() {
-            return email;
-        }
-
-        @Override
-        public Object getPrincipal() {
-            return principal;
-        }
-
-        @Override
-        public boolean isAuthenticated() {
-            return authenticated;
-        }
-
-        @Override
-        public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
-            this.authenticated = isAuthenticated;
-        }
-    }
 }
-

@@ -1,7 +1,7 @@
 // services/api/config.ts
 
-// Production Elastic Beanstalk backend URL
-const PRODUCTION_API_URL = 'https://teamfront-invoice-me-archlife.us-west-1.elasticbeanstalk.com/api/v1';
+// Production backend URL - Using HTTPS with custom domain
+const PRODUCTION_API_URL = 'https://api.teamfront-invoice-me.archlife.org/api/v1';
 
 // Development/local backend URL (used when running locally)
 const DEVELOPMENT_API_URL = 'http://localhost:5000/api/v1';
@@ -62,9 +62,22 @@ if (__DEV__) {
   console.log('[API Config] API URL:', API_BASE_URL);
 }
 
+/**
+ * Resolve request timeout (ms)
+ * - Default: 30s in production, 10s in development
+ * - Overridable via EXPO_PUBLIC_API_TIMEOUT_MS
+ */
+const getTimeoutMs = (): number => {
+  const override = process.env.EXPO_PUBLIC_API_TIMEOUT_MS;
+  if (override && !Number.isNaN(Number(override))) {
+    return Number(override);
+  }
+  return isDevelopment() ? 10000 : 30000;
+};
+
 export const API_CONFIG = {
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: getTimeoutMs(),
   headers: {
     'Content-Type': 'application/json',
   },

@@ -1,5 +1,5 @@
 // app/invoices/index.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -29,11 +29,7 @@ export default function InvoiceListScreen() {
   const [pageNumber, setPageNumber] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
-  useEffect(() => {
-    loadInvoices();
-  }, [statusFilter]);
-
-  const loadInvoices = async (page = 0) => {
+  const loadInvoices = useCallback(async (page = 0) => {
     try {
       setLoading(page === 0);
       const params: ListInvoicesParams = {
@@ -45,16 +41,22 @@ export default function InvoiceListScreen() {
       if (page === 0) {
         setInvoices(response.invoices);
       } else {
-        setInvoices([...invoices, ...response.invoices]);
+        // Use functional update to avoid stale closure
+        setInvoices((prev) => [...prev, ...response.invoices]);
       }
       setHasMore(response.pageNumber < response.totalPages - 1);
+      setPageNumber(response.pageNumber);
     } catch (error) {
       console.error('Error loading invoices:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [statusFilter]);
+
+  useEffect(() => {
+    loadInvoices(0);
+  }, [loadInvoices]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -62,13 +64,12 @@ export default function InvoiceListScreen() {
     loadInvoices(0);
   };
 
-  const loadMore = () => {
+  const loadMore = useCallback(() => {
     if (!loading && hasMore) {
       const nextPage = pageNumber + 1;
-      setPageNumber(nextPage);
       loadInvoices(nextPage);
     }
-  };
+  }, [loading, hasMore, pageNumber, loadInvoices]);
 
   const filteredInvoices = invoices.filter((invoice) => {
     if (searchTerm) {

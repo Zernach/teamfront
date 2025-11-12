@@ -6,7 +6,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * Global CORS configuration for the application.
- * Allows requests from localhost (development) and production frontend origins.
+ * Allows ALL origins - completely open CORS for public access.
  */
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
@@ -14,22 +14,16 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-            // Allow localhost origins for development
-            .allowedOriginPatterns(
-                "http://localhost:*",
-                "http://127.0.0.1:*",
-                // Allow S3 website origins
-                "http://teamfront-invoice-me-frontend.s3-website-us-west-1.amazonaws.com",
-                "https://teamfront-invoice-me-frontend.s3-website-us-west-1.amazonaws.com",
-                // Allow CloudFront distributions (any *.cloudfront.net)
-                "https://*.cloudfront.net"
-            )
+            // Allow ALL origins including CloudFront - completely open CORS
+            .allowedOriginPatterns("*")
             // Allow all HTTP methods
-            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
-            // Allow all headers
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD")
+            // Allow all headers including CloudFront-specific headers
             .allowedHeaders("*")
-            // Allow credentials (cookies, authorization headers)
-            .allowCredentials(true)
+            // Expose all headers including CloudFront headers
+            .exposedHeaders("*")
+            // Disable credentials to allow "*" origin pattern (CORS requirement)
+            .allowCredentials(false)
             // Cache preflight requests for 1 hour
             .maxAge(3600);
     }

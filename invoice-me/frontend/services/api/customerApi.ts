@@ -72,26 +72,26 @@ export const customerApi = {
     pageNumber?: number;
     pageSize?: number;
   }): Promise<PagedCustomerList> {
-    return apiClient.get<PagedCustomerList>('/api/v1/customers', params);
+    return apiClient.get<PagedCustomerList>('/customers', params);
   },
 
   async getCustomerById(id: string): Promise<CustomerDetail> {
-    return apiClient.get<CustomerDetail>(`/api/v1/customers/${id}`);
+    return apiClient.get<CustomerDetail>(`/customers/${id}`);
   },
 
   async createCustomer(data: CreateCustomerRequest): Promise<CustomerDetail> {
-    return apiClient.post<CustomerDetail>('/api/v1/customers', data);
+    return apiClient.post<CustomerDetail>('/customers', data);
   },
 
   async updateCustomer(
     id: string,
     data: UpdateCustomerRequest
   ): Promise<CustomerDetail> {
-    return apiClient.put<CustomerDetail>(`/api/v1/customers/${id}`, data);
+    return apiClient.put<CustomerDetail>(`/customers/${id}`, data);
   },
 
   async deleteCustomer(id: string): Promise<void> {
-    return apiClient.delete<void>(`/api/v1/customers/${id}`);
+    return apiClient.delete<void>(`/customers/${id}`);
   },
 };
 

@@ -34,7 +34,7 @@
       [
         "expo-router",
         {
-          "origin": "http://teamfront-invoice-me-frontend.s3-website-us-west-1.amazonaws.com"
+          "origin": "https://teamfront-invoice-me-frontend.s3-website-us-west-1.amazonaws.com"
         }
       ],
       "expo-dev-client"

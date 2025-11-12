@@ -1,1 +1,1 @@
-web: java $JAVA_OPTS -jar invoice-me-backend-1.0.0.jar --server.port=5000
+web: java $JAVA_OPTS -jar invoice-me-backend-1.0.0.jar

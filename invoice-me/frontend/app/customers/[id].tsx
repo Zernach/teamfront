@@ -1,5 +1,5 @@
 // app/customers/[id].tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -22,25 +22,11 @@ export default function CustomerDetailScreen() {
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (id) {
-      loadCustomer();
-    }
-  }, [id]);
-
-  // Reload customer data when screen comes into focus (e.g., after editing)
-  useFocusEffect(
-    React.useCallback(() => {
-      if (id) {
-        loadCustomer();
-      }
-    }, [id])
-  );
-
-  const loadCustomer = async () => {
+  const loadCustomer = useCallback(async () => {
+    if (!id) return;
     try {
       setLoading(true);
-      const data = await customerApi.getCustomerById(id!);
+      const data = await customerApi.getCustomerById(id);
       setCustomer(data);
     } catch (error) {
       console.error('Error loading customer:', error);
@@ -49,7 +35,22 @@ export default function CustomerDetailScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    if (id) {
+      loadCustomer();
+    }
+  }, [id, loadCustomer]);
+
+  // Reload customer data when screen comes into focus (e.g., after editing)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (id) {
+        loadCustomer();
+      }
+    }, [id, loadCustomer])
+  );
 
   const handleDelete = () => {
     Alert.alert(

@@ -1,5 +1,5 @@
 // app/invoices/new.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -43,22 +43,7 @@ export default function CreateInvoiceScreen() {
   const [taxAmount, setTaxAmount] = useState('');
   const [notes, setNotes] = useState('');
 
-  useEffect(() => {
-    if (!customerId) {
-      loadCustomers();
-    }
-  }, []);
-
-  // Reload customers when screen comes into focus (e.g., after creating a customer)
-  useFocusEffect(
-    React.useCallback(() => {
-      if (!customerId) {
-        loadCustomers();
-      }
-    }, [customerId])
-  );
-
-  const loadCustomers = async () => {
+  const loadCustomers = useCallback(async () => {
     try {
       setLoadingCustomers(true);
       const response = await customerApi.listCustomers({ status: 'ACTIVE' });
@@ -68,7 +53,22 @@ export default function CreateInvoiceScreen() {
     } finally {
       setLoadingCustomers(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!customerId) {
+      loadCustomers();
+    }
+  }, [customerId, loadCustomers]);
+
+  // Reload customers when screen comes into focus (e.g., after creating a customer)
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!customerId) {
+        loadCustomers();
+      }
+    }, [customerId, loadCustomers])
+  );
 
   const addLineItem = () => {
     setLineItems([...lineItems, { description: '', quantity: '1', unitPrice: '0' }]);
@@ -124,171 +124,171 @@ export default function CreateInvoiceScreen() {
   return (
     <Screen style={{ backgroundColor: Colors.background }}>
       <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.cancelButton}>Cancel</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Invoice</Text>
-        <TouchableOpacity onPress={handleSubmit} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator color={Colors.primary} />
-          ) : (
-            <Text style={styles.saveButton}>Save</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.form}>
-        {!customerId && (
-          <View style={styles.section}>
-            <Text style={styles.label}>Customer *</Text>
-            {loadingCustomers ? (
-              <ActivityIndicator />
-            ) : customers.length === 0 ? (
-              <View style={styles.emptyCustomerState}>
-                <Text style={styles.emptyCustomerText}>
-                  No customers found. Create your first customer to get started.
-                </Text>
-                <TouchableOpacity
-                  style={styles.createCustomerButton}
-                  onPress={() => router.push('/customers/new')}
-                >
-                  <Text style={styles.createCustomerButtonText}>
-                    Create Customer
-                  </Text>
-                </TouchableOpacity>
-              </View>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Text style={styles.cancelButton}>Cancel</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>New Invoice</Text>
+          <TouchableOpacity onPress={handleSubmit} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color={Colors.primary} />
             ) : (
-              <View style={styles.customerList}>
-                {customers.map((customer) => (
+              <Text style={styles.saveButton}>Save</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.form}>
+          {!customerId && (
+            <View style={styles.section}>
+              <Text style={styles.label}>Customer *</Text>
+              {loadingCustomers ? (
+                <ActivityIndicator />
+              ) : customers.length === 0 ? (
+                <View style={styles.emptyCustomerState}>
+                  <Text style={styles.emptyCustomerText}>
+                    No customers found. Create your first customer to get started.
+                  </Text>
                   <TouchableOpacity
-                    key={customer.id}
-                    style={[
-                      styles.customerOption,
-                      selectedCustomerId === customer.id &&
-                        styles.customerOptionSelected,
-                    ]}
-                    onPress={() => setSelectedCustomerId(customer.id)}
+                    style={styles.createCustomerButton}
+                    onPress={() => router.push('/customers/new')}
                   >
-                    <Text
-                      style={[
-                        styles.customerOptionText,
-                        selectedCustomerId === customer.id &&
-                          styles.customerOptionTextSelected,
-                      ]}
-                    >
-                      {customer.fullName}
+                    <Text style={styles.createCustomerButtonText}>
+                      Create Customer
                     </Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-            )}
-          </View>
-        )}
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Invoice Details</Text>
-          <Text style={styles.label}>Invoice Date *</Text>
-          <TextInput
-            style={styles.input}
-            value={invoiceDate}
-            onChangeText={setInvoiceDate}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={Colors.textSecondary}
-          />
-
-          <Text style={styles.label}>Due Date *</Text>
-          <TextInput
-            style={styles.input}
-            value={dueDate}
-            onChangeText={setDueDate}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={Colors.textSecondary}
-          />
-
-          <Text style={styles.label}>Tax Amount</Text>
-          <TextInput
-            style={styles.input}
-            value={taxAmount}
-            onChangeText={setTaxAmount}
-            placeholder="0.00"
-            keyboardType="decimal-pad"
-            placeholderTextColor={Colors.textSecondary}
-          />
-
-          <Text style={styles.label}>Notes</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={notes}
-            onChangeText={setNotes}
-            multiline
-            numberOfLines={4}
-            placeholder="Additional notes..."
-            placeholderTextColor={Colors.textSecondary}
-          />
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Line Items</Text>
-            <TouchableOpacity onPress={addLineItem}>
-              <Text style={styles.addButton}>+ Add Item</Text>
-            </TouchableOpacity>
-          </View>
-
-          {lineItems.map((item, index) => (
-            <View key={index} style={styles.lineItem}>
-              <Text style={styles.label}>Description *</Text>
-              <TextInput
-                style={styles.input}
-                value={item.description}
-                onChangeText={(text) =>
-                  updateLineItem(index, 'description', text)
-                }
-                placeholder="Product or service description"
-                placeholderTextColor={Colors.textSecondary}
-              />
-
-              <View style={styles.row}>
-                <View style={styles.halfWidth}>
-                  <Text style={styles.label}>Quantity *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={item.quantity}
-                    onChangeText={(text) =>
-                      updateLineItem(index, 'quantity', text)
-                    }
-                    keyboardType="decimal-pad"
-                    placeholderTextColor={Colors.textSecondary}
-                  />
                 </View>
-                <View style={styles.halfWidth}>
-                  <Text style={styles.label}>Unit Price *</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={item.unitPrice}
-                    onChangeText={(text) =>
-                      updateLineItem(index, 'unitPrice', text)
-                    }
-                    keyboardType="decimal-pad"
-                    placeholder="0.00"
-                    placeholderTextColor={Colors.textSecondary}
-                  />
+              ) : (
+                <View style={styles.customerList}>
+                  {customers.map((customer) => (
+                    <TouchableOpacity
+                      key={customer.id}
+                      style={[
+                        styles.customerOption,
+                        selectedCustomerId === customer.id &&
+                        styles.customerOptionSelected,
+                      ]}
+                      onPress={() => setSelectedCustomerId(customer.id)}
+                    >
+                      <Text
+                        style={[
+                          styles.customerOptionText,
+                          selectedCustomerId === customer.id &&
+                          styles.customerOptionTextSelected,
+                        ]}
+                      >
+                        {customer.fullName}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              </View>
-
-              {lineItems.length > 1 && (
-                <TouchableOpacity
-                  onPress={() => removeLineItem(index)}
-                  style={styles.removeButton}
-                >
-                  <Text style={styles.removeButtonText}>Remove</Text>
-                </TouchableOpacity>
               )}
             </View>
-          ))}
+          )}
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Invoice Details</Text>
+            <Text style={styles.label}>Invoice Date *</Text>
+            <TextInput
+              style={styles.input}
+              value={invoiceDate}
+              onChangeText={setInvoiceDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={Colors.textSecondary}
+            />
+
+            <Text style={styles.label}>Due Date *</Text>
+            <TextInput
+              style={styles.input}
+              value={dueDate}
+              onChangeText={setDueDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={Colors.textSecondary}
+            />
+
+            <Text style={styles.label}>Tax Amount</Text>
+            <TextInput
+              style={styles.input}
+              value={taxAmount}
+              onChangeText={setTaxAmount}
+              placeholder="0.00"
+              keyboardType="decimal-pad"
+              placeholderTextColor={Colors.textSecondary}
+            />
+
+            <Text style={styles.label}>Notes</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              numberOfLines={4}
+              placeholder="Additional notes..."
+              placeholderTextColor={Colors.textSecondary}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Line Items</Text>
+              <TouchableOpacity onPress={addLineItem}>
+                <Text style={styles.addButton}>+ Add Item</Text>
+              </TouchableOpacity>
+            </View>
+
+            {lineItems.map((item, index) => (
+              <View key={index} style={styles.lineItem}>
+                <Text style={styles.label}>Description *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={item.description}
+                  onChangeText={(text) =>
+                    updateLineItem(index, 'description', text)
+                  }
+                  placeholder="Product or service description"
+                  placeholderTextColor={Colors.textSecondary}
+                />
+
+                <View style={styles.row}>
+                  <View style={styles.halfWidth}>
+                    <Text style={styles.label}>Quantity *</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={item.quantity}
+                      onChangeText={(text) =>
+                        updateLineItem(index, 'quantity', text)
+                      }
+                      keyboardType="decimal-pad"
+                      placeholderTextColor={Colors.textSecondary}
+                    />
+                  </View>
+                  <View style={styles.halfWidth}>
+                    <Text style={styles.label}>Unit Price *</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={item.unitPrice}
+                      onChangeText={(text) =>
+                        updateLineItem(index, 'unitPrice', text)
+                      }
+                      keyboardType="decimal-pad"
+                      placeholder="0.00"
+                      placeholderTextColor={Colors.textSecondary}
+                    />
+                  </View>
+                </View>
+
+                {lineItems.length > 1 && (
+                  <TouchableOpacity
+                    onPress={() => removeLineItem(index)}
+                    style={styles.removeButton}
+                  >
+                    <Text style={styles.removeButtonText}>Remove</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
+          </View>
         </View>
-      </View>
       </ScrollView>
     </Screen>
   );

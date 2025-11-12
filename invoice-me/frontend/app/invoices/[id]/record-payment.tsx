@@ -1,5 +1,5 @@
 // app/invoices/[id]/record-payment.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -36,16 +36,11 @@ export default function RecordPaymentScreen() {
   const [referenceNumber, setReferenceNumber] = useState('');
   const [notes, setNotes] = useState('');
 
-  useEffect(() => {
-    if (id) {
-      loadInvoice();
-    }
-  }, [id]);
-
-  const loadInvoice = async () => {
+  const loadInvoice = useCallback(async () => {
+    if (!id) return;
     try {
       setLoading(true);
-      const data = await invoiceApi.getInvoiceById(id!);
+      const data = await invoiceApi.getInvoiceById(id);
       setInvoice(data);
       setAmount(data.balance.toString());
     } catch (error) {
@@ -55,7 +50,13 @@ export default function RecordPaymentScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    if (id) {
+      loadInvoice();
+    }
+  }, [id, loadInvoice]);
 
   const handleSetFullAmount = () => {
     if (invoice) {

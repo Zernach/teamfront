@@ -1,5 +1,5 @@
 // app/invoices/[id]/edit.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -34,16 +34,11 @@ export default function EditInvoiceScreen() {
   const [taxAmount, setTaxAmount] = useState('');
   const [notes, setNotes] = useState('');
 
-  useEffect(() => {
-    if (id) {
-      loadInvoice();
-    }
-  }, [id]);
-
-  const loadInvoice = async () => {
+  const loadInvoice = useCallback(async () => {
+    if (!id) return;
     try {
       setLoading(true);
-      const data = await invoiceApi.getInvoiceById(id!);
+      const data = await invoiceApi.getInvoiceById(id);
       setInvoice(data);
       setInvoiceDate(data.invoiceDate.split('T')[0]);
       setDueDate(data.dueDate.split('T')[0]);
@@ -63,7 +58,13 @@ export default function EditInvoiceScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    if (id) {
+      loadInvoice();
+    }
+  }, [id, loadInvoice]);
 
   const addLineItem = () => {
     setLineItems([...lineItems, { description: '', quantity: '1', unitPrice: '0' }]);

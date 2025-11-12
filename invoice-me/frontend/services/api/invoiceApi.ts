@@ -124,22 +124,22 @@ export interface ListInvoicesParams {
 
 export const invoiceApi = {
   async createInvoice(data: CreateInvoiceRequest): Promise<InvoiceDetail> {
-    return apiClient.post<InvoiceDetail>('/api/v1/invoices', data);
+    return apiClient.post<InvoiceDetail>('/invoices', data);
   },
 
   async updateInvoice(
     id: string,
     data: UpdateInvoiceRequest
   ): Promise<InvoiceDetail> {
-    return apiClient.put<InvoiceDetail>(`/api/v1/invoices/${id}`, data);
+    return apiClient.put<InvoiceDetail>(`/invoices/${id}`, data);
   },
 
   async getInvoiceById(id: string): Promise<InvoiceDetail> {
-    return apiClient.get<InvoiceDetail>(`/api/v1/invoices/${id}`);
+    return apiClient.get<InvoiceDetail>(`/invoices/${id}`);
   },
 
   async listInvoices(params?: ListInvoicesParams): Promise<PagedInvoiceList> {
-    return apiClient.get<PagedInvoiceList>('/api/v1/invoices', params);
+    return apiClient.get<PagedInvoiceList>('/invoices', params);
   },
 
   async markInvoiceAsSent(
@@ -147,7 +147,7 @@ export const invoiceApi = {
     data?: MarkInvoiceAsSentRequest
   ): Promise<InvoiceDetail> {
     return apiClient.post<InvoiceDetail>(
-      `/api/v1/invoices/${id}/mark-as-sent`,
+      `/invoices/${id}/mark-as-sent`,
       data || {}
     );
   },
@@ -156,14 +156,14 @@ export const invoiceApi = {
     id: string,
     data: RecordPaymentRequest
   ): Promise<any> {
-    return apiClient.post(`/api/v1/invoices/${id}/payments`, data);
+    return apiClient.post(`/invoices/${id}/payments`, data);
   },
 
   async cancelInvoice(
     id: string,
     data: CancelInvoiceRequest
   ): Promise<InvoiceDetail> {
-    return apiClient.post<InvoiceDetail>(`/api/v1/invoices/${id}/cancel`, data);
+    return apiClient.post<InvoiceDetail>(`/invoices/${id}/cancel`, data);
   },
 };
 

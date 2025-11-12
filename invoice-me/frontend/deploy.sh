@@ -4,7 +4,7 @@ set -e  # Exit on error
 
 # Configuration - Set these environment variables or modify defaults
 S3_BUCKET="${S3_BUCKET:-teamfront-invoice-me-frontend}"
-CLOUDFRONT_DISTRIBUTION_ID="teamfront-invoice-me-frontend"
+CLOUDFRONT_DISTRIBUTION_ID="E2UDKGPKOVUH4I"
 
 # Check if AWS CLI is installed
 if ! command -v aws &> /dev/null; then
@@ -22,8 +22,8 @@ echo "Building invoice-me frontend for web..."
 
 # Set production environment variables for the build
 export EXPO_PUBLIC_ENV="production"
-export EXPO_PUBLIC_API_URL="https://teamfront-invoice-me-archlife.us-west-1.elasticbeanstalk.com/api/v1"
-export EXPO_PUBLIC_WS_URL="https://teamfront-invoice-me-archlife.us-west-1.elasticbeanstalk.com"
+export EXPO_PUBLIC_API_URL="https://api.teamfront-invoice-me.archlife.org/api/v1"
+export EXPO_PUBLIC_WS_URL="https://api.teamfront-invoice-me.archlife.org"
 
 yarn install
 yarn build:web

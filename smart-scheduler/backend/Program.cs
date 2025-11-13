@@ -30,12 +30,20 @@ var builder = WebApplication.CreateBuilder(options);
 
 // Configure port binding for Elastic Beanstalk
 // EB provides PORT environment variable, fallback to 5001 for local development (avoid conflict with invoice-me)
-// Only set UseUrls if ASPNETCORE_URLS is not already set
-if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
+// Always respect PORT environment variable if set, even if ASPNETCORE_URLS is also set
+// This ensures consistent behavior across different EB configurations
+var port = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(port))
 {
-    var port = Environment.GetEnvironmentVariable("PORT") ?? "5001";
+    // PORT is set, use it explicitly
     builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 }
+else if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_URLS")))
+{
+    // Neither PORT nor ASPNETCORE_URLS is set, use default port 5001 for local development
+    builder.WebHost.UseUrls($"http://0.0.0.0:5001");
+}
+// If ASPNETCORE_URLS is set but PORT is not, let ASPNETCORE_URLS take precedence (default .NET behavior)
 
 // Add services to the container
 builder.Services.AddControllers(options =>

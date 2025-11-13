@@ -42,6 +42,10 @@ const uploadSlice = createSlice({
     updateProgress: (state, action: PayloadAction<{ id: string; progress: number }>) => {
       const item = state.queue.find((item) => item?.id === action.payload.id);
       if (item) {
+        // Don't update progress or change status if already completed or failed
+        if (item.status === 'completed' || item.status === 'failed') {
+          return;
+        }
         item.progress = action.payload.progress;
         item.status = 'uploading';
       }

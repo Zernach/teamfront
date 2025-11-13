@@ -3,9 +3,9 @@
  * Environment variables can be set during build time with EXPO_PUBLIC_ prefix
  */
 
-// Production Elastic Beanstalk backend URL
-const PRODUCTION_API_URL = 'https://teamfront-rapid-photo-upload-archlife.us-west-1.elasticbeanstalk.com/api/v1';
-const PRODUCTION_WS_URL = 'https://teamfront-rapid-photo-upload-archlife.us-west-1.elasticbeanstalk.com';
+// Production Elastic Beanstalk backend URL - Using HTTPS with custom domain
+const PRODUCTION_API_URL = 'https://api.teamfront-rapid-photo-upload.archlife.org/api/v1';
+const PRODUCTION_WS_URL = 'https://api.teamfront-rapid-photo-upload.archlife.org';
 
 // Development/local backend URL (used when running locally)
 const DEVELOPMENT_API_URL = 'http://localhost:5000/api/v1';

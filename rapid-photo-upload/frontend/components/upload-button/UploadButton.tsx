@@ -8,6 +8,7 @@ import { COLORS } from '../../constants/colors';
 import webSocketClient from '../../services/webSocketClient';
 import tokenStorage from '../../services/tokenStorage';
 import fileStorage from '../../services/fileStorage';
+import apiClient from '../../services/apiClient';
 
 interface WebSocketProgressData {
   photoId?: string;
@@ -15,6 +16,9 @@ interface WebSocketProgressData {
   progress?: number;
   status?: 'completed' | 'failed' | 'uploading';
   error?: string;
+  jobId?: string;
+  current?: number;
+  total?: number;
 }
 
 type QueueItem = RootState['upload']['queue'][number];
@@ -57,10 +61,12 @@ export function UploadButton() {
       console.log('[UploadButton] Initializing WebSocket connection');
       const token = await tokenStorage.getAuthToken();
       if (token) {
-        console.log('[UploadButton] Auth token found, connecting WebSocket');
+        console.log('[UploadButton] Auth token found, connecting WebSocket with token');
         webSocketClient.connect(token);
       } else {
-        console.warn('[UploadButton] No auth token found, skipping WebSocket connection');
+        console.log('[UploadButton] No auth token found, connecting WebSocket without token (anonymous)');
+        // Connect without token - backend allows anonymous connections
+        webSocketClient.connect();
       }
     };
 
@@ -74,57 +80,114 @@ export function UploadButton() {
 
   const handleJobProgressMessage = useCallback((data: WebSocketProgressData) => {
     console.log('[UploadButton] Received WebSocket progress update:', data);
-    if (!data.photoId) {
-      return;
-    }
+    const queueSnapshot: QueueItem[] = queueRef.current ?? [];
 
-    const queueSnapshot = queueRef.current ?? [];
+    if (data.photoId) {
+      const findQueueItem = () => {
+        let queueItem = queueSnapshot.find((item: QueueItem) => item.photoId === data.photoId);
+        if (!queueItem && data.filename) {
+          queueItem = queueSnapshot.find((item: QueueItem) => item.fileMetadata.name === data.filename);
+        }
+        if (!queueItem) {
+          queueItem = queueSnapshot.find((item: QueueItem) => item.id === data.photoId);
+        }
+        return queueItem;
+      };
 
-    const findQueueItem = () => {
-      // First try to find by photoId (most reliable)
-      let queueItem = queueSnapshot.find((item: QueueItem) => item.photoId === data.photoId);
-      
-      // Fallback to filename if photoId not found
-      if (!queueItem && data.filename) {
-        queueItem = queueSnapshot.find((item: QueueItem) => item.fileMetadata.name === data.filename);
-      }
-      
-      // Last resort: match by uploadId (shouldn't happen, but handle it)
+      const queueItem = findQueueItem();
+
       if (!queueItem) {
-        queueItem = queueSnapshot.find((item: QueueItem) => item.id === data.photoId);
+        console.warn('[UploadButton] Could not find queue item for progress update:', {
+          photoId: data.photoId,
+          filename: data.filename,
+          queueItems: queueSnapshot.map(item => ({ 
+            id: item.id, 
+            photoId: item.photoId,
+            filename: item.fileMetadata.name 
+          })),
+        });
+        return;
       }
 
-      return queueItem;
-    };
+      const activeItemsBeforeUpdate = queueSnapshot.filter((item) => item.status !== 'completed' && item.status !== 'failed').length;
+      const jobWillFinishAfterThis = activeItemsBeforeUpdate <= 1;
 
-    const queueItem = findQueueItem();
+      if (data.status === 'completed') {
+        console.log('[UploadButton] Marking queue item as completed:', queueItem.id);
+        dispatch(markCompleted({ id: queueItem.id }));
+        if (jobWillFinishAfterThis) {
+          dispatch(setActiveJobId({ jobId: null }));
+        }
+        return;
+      }
 
-    if (!queueItem) {
-      console.warn('[UploadButton] Could not find queue item for progress update:', {
-        photoId: data.photoId,
-        filename: data.filename,
-        queueItems: queueSnapshot.map(item => ({ 
-          id: item.id, 
-          photoId: item.photoId,
-          filename: item.fileMetadata.name 
-        })),
-      });
+      if (data.status === 'failed') {
+        console.log('[UploadButton] Marking queue item as failed:', queueItem.id, data.error);
+        dispatch(markFailed({ id: queueItem.id, error: data.error || 'Upload failed' }));
+        if (jobWillFinishAfterThis) {
+          dispatch(setActiveJobId({ jobId: null }));
+        }
+        return;
+      }
+
+      if (data.progress !== undefined && (queueItem.status === 'uploading' || queueItem.status === 'queued')) {
+        console.log('[UploadButton] Updating progress for queue item:', queueItem.id, 'to', data.progress);
+        dispatch(updateProgress({ id: queueItem.id, progress: data.progress! }));
+      }
       return;
     }
 
-    if (data.progress !== undefined) {
-      console.log('[UploadButton] Updating progress for queue item:', queueItem.id, 'to', data.progress);
-      dispatch(updateProgress({ id: queueItem.id, progress: data.progress! }));
+    if (!data.jobId) {
+      return;
     }
 
-    if (data.status === 'completed') {
-      console.log('[UploadButton] Marking queue item as completed:', queueItem.id);
-      dispatch(markCompleted({ id: queueItem.id }));
+    if (typeof data.current === 'number' && typeof data.total === 'number' && data.total > 0) {
+      const aggregateProgress = Math.min(100, Math.round((data.current / data.total) * 100));
+      queueSnapshot
+        .filter((item) => item.status === 'uploading' || item.status === 'queued')
+        .forEach((item) => {
+          dispatch(updateProgress({ id: item.id, progress: aggregateProgress }));
+        });
+    }
+
+    if (typeof data.current === 'number') {
+      const alreadyCompleted = queueSnapshot.filter((item) => item.status === 'completed').length;
+      const shouldBeCompleted = Math.min(data.current, queueSnapshot.length);
+      const newlyCompletedCount = shouldBeCompleted - alreadyCompleted;
+      if (newlyCompletedCount > 0) {
+        queueSnapshot
+          .filter((item) => item.status !== 'completed' && item.status !== 'failed')
+          .slice(0, newlyCompletedCount)
+          .forEach((item) => {
+            console.log('[UploadButton] Marking queue item as completed based on job progress:', item.id);
+            dispatch(markCompleted({ id: item.id }));
+          });
+      }
+    }
+
+    const jobIsComplete =
+      data.status === 'completed' ||
+      (typeof data.current === 'number' && typeof data.total === 'number' && data.total > 0 && data.current >= data.total);
+
+    if (jobIsComplete) {
+      console.log('[UploadButton] Job marked as completed, finalizing queue items');
+      queueSnapshot.forEach((item) => {
+        if (item.status !== 'completed') {
+          dispatch(markCompleted({ id: item.id }));
+        }
+      });
+      dispatch(setActiveJobId({ jobId: null }));
+      return;
     }
 
     if (data.status === 'failed') {
-      console.log('[UploadButton] Marking queue item as failed:', queueItem.id, data.error);
-      dispatch(markFailed({ id: queueItem.id, error: data.error || 'Upload failed' }));
+      console.log('[UploadButton] Job marked as failed, flagging queue items');
+      queueSnapshot.forEach((item) => {
+        if (item.status !== 'failed') {
+          dispatch(markFailed({ id: item.id, error: data.error || 'Upload job failed' }));
+        }
+      });
+      dispatch(setActiveJobId({ jobId: null }));
     }
   }, [dispatch]);
 
@@ -142,6 +205,75 @@ export function UploadButton() {
       console.log('[UploadButton] No activeJobId, skipping WebSocket subscription');
     }
   }, [activeJobId, handleJobProgressMessage]);
+
+  // Polling fallback: Check photo status via API if WebSocket is not connected
+  useEffect(() => {
+    const isWebSocketConnected = webSocketClient.getIsConnected();
+    const hasUploadingItems = queue.some((item) => item.status === 'uploading' || item.status === 'queued');
+    const hasPhotoIds = queue.some((item) => item.photoId);
+
+    // Only poll if:
+    // 1. WebSocket is not connected
+    // 2. There are items uploading/queued
+    // 3. At least one item has a photoId
+    if (!isWebSocketConnected && hasUploadingItems && hasPhotoIds) {
+      console.log('[UploadButton] WebSocket not connected, starting polling fallback');
+      
+      const pollInterval = setInterval(async () => {
+        const currentQueue = queueRef.current ?? [];
+        const itemsWithPhotoIds = currentQueue.filter(
+          (item) => item.photoId && (item.status === 'uploading' || item.status === 'queued')
+        );
+
+        if (itemsWithPhotoIds.length === 0) {
+          console.log('[UploadButton] No items to poll, stopping polling');
+          clearInterval(pollInterval);
+          return;
+        }
+
+        // Check each photo's status via API
+        for (const item of itemsWithPhotoIds) {
+          if (!item.photoId) continue;
+
+          try {
+            const response = await apiClient.get(`/photos/${item.photoId}`);
+            const photo = response.data;
+
+            // If photo exists and has status COMPLETED, mark as completed
+            if (photo && photo.status === 'COMPLETED') {
+              console.log('[UploadButton] Polling: Photo completed via API:', item.photoId);
+              dispatch(markCompleted({ id: item.id }));
+            } else if (photo && photo.status === 'FAILED') {
+              console.log('[UploadButton] Polling: Photo failed via API:', item.photoId);
+              dispatch(markFailed({ id: item.id, error: 'Upload failed' }));
+            }
+          } catch (error: any) {
+            // If photo doesn't exist yet (404), it's still uploading
+            if (error?.response?.status === 404) {
+              console.log('[UploadButton] Polling: Photo not found yet:', item.photoId);
+              // Continue polling
+            } else {
+              console.error('[UploadButton] Polling error for photo:', item.photoId, error);
+            }
+          }
+        }
+
+        // Stop polling if all items are completed or failed
+        const stillUploading = currentQueue.some(
+          (item) => item.status === 'uploading' || item.status === 'queued'
+        );
+        if (!stillUploading) {
+          console.log('[UploadButton] All items finished, stopping polling');
+          clearInterval(pollInterval);
+        }
+      }, 2000); // Poll every 2 seconds
+
+      return () => {
+        console.log('[UploadButton] Cleaning up polling interval');
+        clearInterval(pollInterval);
+      };
+    }
+  }, [queue, dispatch]);
 
   const handleUpload = useCallback(async () => {
     console.log('[UploadButton] Upload button clicked');

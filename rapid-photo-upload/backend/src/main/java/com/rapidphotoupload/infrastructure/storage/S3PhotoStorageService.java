@@ -105,6 +105,12 @@ public class S3PhotoStorageService implements CloudStorageService {
     }
     
     @Override
+    public String getPublicUrl(String key) {
+        // For S3, we generate presigned URLs with default expiration
+        return generatePresignedUrl(key, presignedUrlExpirationMinutes);
+    }
+    
+    @Override
     public String generatePresignedUrl(String key, int expirationMinutes) {
         try {
             GetObjectRequest getObjectRequest = GetObjectRequest.builder()

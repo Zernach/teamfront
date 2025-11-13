@@ -54,19 +54,17 @@ public class PhotoQueryController {
             @RequestParam(defaultValue = "20") int pageSize) {
         
         try {
-            // Get user ID from authentication principal or security context
+            // Get user ID from authentication principal or security context, or use anonymous for public access
             if (userIdStr == null) {
                 Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-                if (authentication == null || authentication.getPrincipal() == null) {
-                    logger.warn("Unauthorized request to get photos");
-                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(new com.rapidphotoupload.api.dto.ErrorResponse(
-                            "UNAUTHORIZED",
-                            "Authentication required",
-                            "/api/v1/photos"
-                        ));
+                if (authentication == null || authentication.getPrincipal() == null || 
+                    authentication.getPrincipal().equals("anonymousUser")) {
+                    // Public access: Use a default anonymous user ID for unauthenticated requests
+                    logger.info("Public access request to get photos - using anonymous user ID");
+                    userIdStr = "00000000-0000-0000-0000-000000000000"; // Anonymous user UUID
+                } else {
+                    userIdStr = authentication.getPrincipal().toString();
                 }
-                userIdStr = authentication.getPrincipal().toString();
             }
             
             logger.info("Fetching photos for user: {} (page: {}, pageSize: {})", userIdStr, page, pageSize);
@@ -85,13 +83,9 @@ public class PhotoQueryController {
             try {
                 userId = UserId.from(UUID.fromString(userIdStr));
             } catch (IllegalArgumentException e) {
-                logger.error("Invalid user ID format: {}", userIdStr, e);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new com.rapidphotoupload.api.dto.ErrorResponse(
-                        "UNAUTHORIZED",
-                        "Invalid user ID",
-                        "/api/v1/photos"
-                    ));
+                logger.error("Invalid user ID format: {}, using anonymous user", userIdStr, e);
+                // Fallback to anonymous user for public access
+                userId = UserId.from(UUID.fromString("00000000-0000-0000-0000-000000000000"));
             }
             List<Photo> allPhotos;
             
@@ -149,19 +143,17 @@ public class PhotoQueryController {
             @AuthenticationPrincipal String userIdStr,
             @PathVariable String photoId) {
         
-        // Get user ID from authentication principal or security context
+        // Get user ID from authentication principal or security context, or use anonymous for public access
         if (userIdStr == null) {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || authentication.getPrincipal() == null) {
-                logger.warn("Unauthorized request to get photo: {}", photoId);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new com.rapidphotoupload.api.dto.ErrorResponse(
-                        "UNAUTHORIZED",
-                        "Authentication required",
-                        "/api/v1/photos/" + photoId
-                    ));
+            if (authentication == null || authentication.getPrincipal() == null || 
+                authentication.getPrincipal().equals("anonymousUser")) {
+                // Public access: Use a default anonymous user ID for unauthenticated requests
+                logger.info("Public access request to get photo: {} - using anonymous user ID", photoId);
+                userIdStr = "00000000-0000-0000-0000-000000000000"; // Anonymous user UUID
+            } else {
+                userIdStr = authentication.getPrincipal().toString();
             }
-            userIdStr = authentication.getPrincipal().toString();
         }
         
         // Create final variable for use in lambda
@@ -195,19 +187,17 @@ public class PhotoQueryController {
             @PathVariable String photoId,
             @RequestParam(defaultValue = "60") int expirationMinutes) {
         
-        // Get user ID from authentication principal or security context
+        // Get user ID from authentication principal or security context, or use anonymous for public access
         if (userIdStr == null) {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || authentication.getPrincipal() == null) {
-                logger.warn("Unauthorized request to get download URL for photo: {}", photoId);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new com.rapidphotoupload.api.dto.ErrorResponse(
-                        "UNAUTHORIZED",
-                        "Authentication required",
-                        "/api/v1/photos/" + photoId + "/download-url"
-                    ));
+            if (authentication == null || authentication.getPrincipal() == null || 
+                authentication.getPrincipal().equals("anonymousUser")) {
+                // Public access: Use a default anonymous user ID for unauthenticated requests
+                logger.info("Public access request to get download URL for photo: {} - using anonymous user ID", photoId);
+                userIdStr = "00000000-0000-0000-0000-000000000000"; // Anonymous user UUID
+            } else {
+                userIdStr = authentication.getPrincipal().toString();
             }
-            userIdStr = authentication.getPrincipal().toString();
         }
         
         // Create final variable for use in lambda

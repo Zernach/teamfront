@@ -114,16 +114,88 @@ public class GlobalExceptionHandler {
         Exception ex,
         WebRequest request
     ) {
-        // Log the full exception for debugging
         org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+        String requestPath = request.getDescription(false).replace("uri=", "");
+        
+        // Detect bot scanning patterns and return 404 instead of 500
+        if (isBotScanningPattern(requestPath, ex)) {
+            logger.warn("Bot scanning attempt detected: {} - returning 404", requestPath);
+            ErrorResponse error = new ErrorResponse(
+                "NOT_FOUND",
+                "Resource not found",
+                requestPath
+            );
+            return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+        }
+        
+        // Log the full exception for debugging legitimate errors
         logger.error("Unhandled exception occurred", ex);
         
         ErrorResponse error = new ErrorResponse(
             "INTERNAL_SERVER_ERROR",
             "An unexpected error occurred",
-            request.getDescription(false).replace("uri=", "")
+            requestPath
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    
+    /**
+     * Detects common bot scanning patterns in request paths.
+     * Returns true if the request appears to be a bot scanning attempt.
+     */
+    private boolean isBotScanningPattern(String path, Exception ex) {
+        if (path == null) {
+            return false;
+        }
+        
+        String lowerPath = path.toLowerCase();
+        
+        // Common bot scanning patterns
+        String[] botPatterns = {
+            "/.git/",
+            "/.env",
+            "/.aws/",
+            "/phpinfo",
+            "/shell.php",
+            "/wp-",
+            "/admin/",
+            "/config/",
+            "/.config",
+            "/cicd/",
+            "/pipeline/",
+            "/server/",
+            "/operations/",
+            "/k8s/",
+            "/docker/",
+            "/jenkins/",
+            "/vendor/phpunit/",
+            "/cgi-bin/",
+            "/eval-stdin.php",
+            "/wp-config.php",
+            "/settings.php",
+            "/configuration.php",
+            "/.circleci/",
+            "/debug/default/view"
+        };
+        
+        for (String pattern : botPatterns) {
+            if (lowerPath.contains(pattern)) {
+                return true;
+            }
+        }
+        
+        // Check for path traversal attempts
+        if (lowerPath.contains("..") || lowerPath.contains("%2e%2e") || lowerPath.contains("%252e")) {
+            return true;
+        }
+        
+        // Check for suspicious file extensions in unexpected paths
+        if (lowerPath.matches(".*\\.(php|jsp|asp|aspx|sh|bat|cmd|exe)$") && 
+            !lowerPath.startsWith("/api/")) {
+            return true;
+        }
+        
+        return false;
     }
 }
 

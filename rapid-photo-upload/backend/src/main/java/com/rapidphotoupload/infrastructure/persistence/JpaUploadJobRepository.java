@@ -29,6 +29,8 @@ public class JpaUploadJobRepository implements UploadJobRepository {
     public void save(UploadJob job) {
         logger.debug("Saving upload job: {}", job.getId().getValue());
         UploadJobEntity entity = toEntity(job);
+        logger.info("Saving upload job entity - ID: {}, UserID: {}, TotalPhotos: {}",
+            entity.getId(), entity.getUserId(), entity.getTotalPhotos());
         jpaRepository.save(entity);
         logger.debug("Upload job saved successfully: {}", job.getId().getValue());
     }

@@ -317,6 +317,38 @@ And for job-level progress:
 
 ## Troubleshooting
 
+### Upload Error: "PasswordHash must be a valid bcrypt hash"
+
+**Problem:** When uploading photos, you get a 500 error with message "An unexpected error occurred: PasswordHash must be a valid bcrypt hash"
+
+**Root Cause:** The anonymous user in the database has an invalid password hash format. The `PasswordHash` value object validates that password hashes follow bcrypt format (starting with `$2a$`, `$2b$`, or `$2y$`).
+
+**Solution:**
+1. **Run the database migrations:**
+   ```bash
+   cd backend
+   mvn clean install
+   mvn spring-boot:run
+   ```
+   This will apply migration `V8__fix_anonymous_user_password_hash.sql` which updates the anonymous user's password hash to a valid bcrypt format.
+
+2. **Manual fix (if needed):**
+   If migrations don't run automatically, execute this SQL directly:
+   ```sql
+   UPDATE users
+   SET password_hash = '$2a$10$ANONYMOUS.USER.NO.LOGIN.HASH.PLACEHOLDER.FOR.SYSTEM.USE.ONLY.e'
+   WHERE id = '00000000-0000-0000-0000-000000000000'
+     AND password_hash = 'ANONYMOUS_USER_NO_LOGIN';
+   ```
+
+3. **Verify the fix:**
+   ```sql
+   SELECT id, username, password_hash 
+   FROM users 
+   WHERE id = '00000000-0000-0000-0000-000000000000';
+   ```
+   The `password_hash` should start with `$2a$10$`.
+
 ### Photos Not Appearing in Gallery
 
 **Check:**

@@ -6,6 +6,7 @@ import com.rapidphotoupload.application.commands.CommandResult;
 import com.rapidphotoupload.application.commands.CreateUploadJobCommand;
 import com.rapidphotoupload.application.commands.UploadPhotoCommand;
 import com.rapidphotoupload.application.commands.handlers.CommandDispatcher;
+import com.rapidphotoupload.domain.repositories.UserRepository;
 import com.rapidphotoupload.domain.valueobjects.*;
 import com.rapidphotoupload.infrastructure.exceptions.ValidationException;
 import com.rapidphotoupload.infrastructure.storage.TemporaryFileStorage;
@@ -34,15 +35,19 @@ import java.io.IOException;
 public class PhotoUploadController {
     
     private static final Logger logger = LoggerFactory.getLogger(PhotoUploadController.class);
+    private static final UUID ANONYMOUS_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
     
     private final CommandDispatcher commandDispatcher;
     private final TemporaryFileStorage temporaryFileStorage;
+    private final UserRepository userRepository;
     
     public PhotoUploadController(
             CommandDispatcher commandDispatcher,
-            TemporaryFileStorage temporaryFileStorage) {
+            TemporaryFileStorage temporaryFileStorage,
+            UserRepository userRepository) {
         this.commandDispatcher = commandDispatcher;
         this.temporaryFileStorage = temporaryFileStorage;
+        this.userRepository = userRepository;
     }
     
     /**
@@ -60,30 +65,44 @@ public class PhotoUploadController {
         logger.info("Batch upload request received with {} files", files.length);
         
         try {
-            // Get authenticated user ID from security context
+            // Get authenticated user ID from security context, or use anonymous user for public access
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null || authentication.getPrincipal() == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ErrorResponse(
-                        "UNAUTHORIZED",
-                        "Authentication required",
-                        request.getRequestURI()
-                    ));
+            String userIdStr;
+            UserId userId;
+            
+            if (authentication == null || authentication.getPrincipal() == null || 
+                authentication.getPrincipal().equals("anonymousUser")) {
+                // Public access: Use a default anonymous user ID for unauthenticated requests
+                logger.info("Public access request - using anonymous user ID");
+                userIdStr = ANONYMOUS_USER_ID.toString();
+            } else {
+                userIdStr = authentication.getPrincipal().toString();
             }
             
-            String userIdStr = authentication.getPrincipal().toString();
-            UserId userId;
             try {
                 userId = UserId.from(UUID.fromString(userIdStr));
             } catch (IllegalArgumentException e) {
                 logger.error("Invalid user ID format: {}", userIdStr);
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                // Fallback to anonymous user for public access
+                userId = UserId.from(ANONYMOUS_USER_ID);
+                logger.info("Using anonymous user ID due to invalid format");
+            }
+            
+            // Log the user ID being used
+            logger.info("Upload request using userId: {} ({})", userId.getValue(),
+                userId.getValue().equals(ANONYMOUS_USER_ID) ? "ANONYMOUS" : "AUTHENTICATED");
+
+            // Ensure user exists (especially important for anonymous user)
+            if (!userRepository.findById(userId).isPresent()) {
+                logger.error("User not found: {}. Database migrations may not have been run.", userId.getValue());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse(
-                        "UNAUTHORIZED",
-                        "Invalid user ID",
+                        "USER_NOT_FOUND",
+                        "User account not found. Please ensure database migrations have been run (migration V7 creates the anonymous user).",
                         request.getRequestURI()
                     ));
             }
+            logger.info("User exists in database: {}", userId.getValue());
             
             // Validate files
             if (files == null || files.length == 0) {

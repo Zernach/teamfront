@@ -78,10 +78,19 @@ public class LocalFileStorageService implements CloudStorageService {
     }
     
     @Override
-    public String generatePresignedUrl(String key, int expirationMinutes) {
-        // For local storage, return a file:// URL
+    public String getPublicUrl(String key) {
         Path filePath = storageDirectory.resolve(key);
-        return "file://" + filePath.toAbsolutePath().toString();
+        String absolutePath = filePath.toAbsolutePath().toString();
+        // For local development we expose files directly from the filesystem.
+        // Returning a file:// URL keeps the asset publicly accessible on the host machine.
+        return "file://" + absolutePath.replace("\\", "/");
+    }
+    
+    @Override
+    public String generatePresignedUrl(String key, int expirationMinutes) {
+        // For local file storage, just return the public URL
+        // There's no concept of expiring URLs for local files
+        return getPublicUrl(key);
     }
 }
 

@@ -26,6 +26,11 @@ public class AzureBlobPhotoStorageService implements CloudStorageService {
     }
 
     @Override
+    public String getPublicUrl(String key) {
+        throw new UnsupportedOperationException("AzureBlobPhotoStorageService not yet implemented");
+    }
+
+    @Override
     public String generatePresignedUrl(String key, int expirationMinutes) {
         throw new UnsupportedOperationException("AzureBlobPhotoStorageService not yet implemented");
     }

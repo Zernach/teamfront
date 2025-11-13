@@ -31,9 +31,17 @@ public interface CloudStorageService {
     void delete(String key);
 
     /**
-     * Generate a presigned URL for temporary access.
+     * Build a publicly accessible URL for a stored asset.
+     * Implementations must ensure the returned URL is reachable without authentication.
      * @param key Storage key/path
-     * @param expirationMinutes Minutes until URL expires
+     * @return Public URL
+     */
+    String getPublicUrl(String key);
+
+    /**
+     * Generate a presigned URL for temporary access to a stored asset.
+     * @param key Storage key/path
+     * @param expirationMinutes Number of minutes until the URL expires
      * @return Presigned URL
      */
     String generatePresignedUrl(String key, int expirationMinutes);

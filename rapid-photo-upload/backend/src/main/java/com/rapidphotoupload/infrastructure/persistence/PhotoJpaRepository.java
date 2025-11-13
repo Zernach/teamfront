@@ -13,11 +13,13 @@ import java.util.UUID;
  */
 @Repository
 public interface PhotoJpaRepository extends JpaRepository<PhotoEntity, UUID> {
-    List<PhotoEntity> findByUserId(UUID userId);
+    @Query("SELECT p FROM PhotoEntity p WHERE p.userId = :userId ORDER BY p.uploadedAt DESC")
+    List<PhotoEntity> findByUserId(@Param("userId") UUID userId);
     
-    @Query("SELECT p FROM PhotoEntity p WHERE p.userId = :userId AND p.status = :status")
+    @Query("SELECT p FROM PhotoEntity p WHERE p.userId = :userId AND p.status = :status ORDER BY p.uploadedAt DESC")
     List<PhotoEntity> findByUserIdAndStatus(@Param("userId") UUID userId, @Param("status") String status);
     
-    List<PhotoEntity> findByStatus(String status);
+    @Query("SELECT p FROM PhotoEntity p WHERE p.status = :status ORDER BY p.uploadedAt DESC")
+    List<PhotoEntity> findByStatus(@Param("status") String status);
 }
 

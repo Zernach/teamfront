@@ -1236,7 +1236,7 @@ cloud:
     provider: s3 # or azure
     s3:
       bucket-name: rapidphotoupload-photos
-      region: us-east-1
+      region: us-west-1
       access-key: ${AWS_ACCESS_KEY}
       secret-key: ${AWS_SECRET_KEY}
     azure:

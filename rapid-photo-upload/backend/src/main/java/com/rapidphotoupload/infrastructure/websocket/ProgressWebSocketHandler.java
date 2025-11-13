@@ -42,13 +42,19 @@ public class ProgressWebSocketHandler extends TextWebSocketHandler {
         String userId = (String) session.getAttributes().get("userId");
         if (userId != null) {
             userSessions.put(userId, session);
+            logger.info("WebSocket session established for user: {} (sessionId: {})", userId, session.getId());
+        } else {
+            logger.warn("WebSocket session established without userId (sessionId: {})", session.getId());
         }
     }
     
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         // Remove session when connection closes
+        String userId = (String) session.getAttributes().get("userId");
         userSessions.entrySet().removeIf(entry -> entry.getValue().equals(session));
+        logger.info("WebSocket session closed for user: {} (sessionId: {}, status: {})", 
+                    userId, session.getId(), status);
     }
     
     @Override
@@ -94,6 +100,7 @@ public class ProgressWebSocketHandler extends TextWebSocketHandler {
                 synchronized (session) {
                     String json = objectMapper.writeValueAsString(message);
                     session.sendMessage(new TextMessage(json));
+                    logger.debug("Sent WebSocket message to user {}: {}", userId, message.getType());
                 }
             } catch (IOException e) {
                 // Log error and remove session
@@ -103,6 +110,9 @@ public class ProgressWebSocketHandler extends TextWebSocketHandler {
                 // Handle concurrent write attempts gracefully
                 logger.warn("Concurrent WebSocket write detected for user {}: {}", userId, e.getMessage());
             }
+        } else {
+            logger.debug("No active WebSocket session for user {} (session: {}, open: {})", 
+                        userId, session != null ? "exists" : "null", session != null ? session.isOpen() : "n/a");
         }
     }
     

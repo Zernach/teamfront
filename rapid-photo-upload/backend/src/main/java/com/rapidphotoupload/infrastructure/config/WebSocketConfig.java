@@ -10,30 +10,25 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 
 /**
  * WebSocket configuration for real-time upload progress updates.
+ * Registers JWT handshake interceptor so sessions can be tied to specific users.
  */
 @Configuration
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
     
     private final ProgressWebSocketHandler progressWebSocketHandler;
-    private final JwtService jwtService;
+    private final JwtWebSocketHandshakeInterceptor handshakeInterceptor;
     
     public WebSocketConfig(ProgressWebSocketHandler progressWebSocketHandler, JwtService jwtService) {
         this.progressWebSocketHandler = progressWebSocketHandler;
-        this.jwtService = jwtService;
+        this.handshakeInterceptor = new JwtWebSocketHandshakeInterceptor(jwtService);
     }
     
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(progressWebSocketHandler, "/ws/progress")
-                .addInterceptors(new JwtWebSocketHandshakeInterceptor(jwtService))
-                .setAllowedOriginPatterns(
-                    "http://localhost:*",
-                    "http://127.0.0.1:*",
-                    "http://teamfront-rapid-photo-upload-frontend.s3-website-us-west-1.amazonaws.com",
-                    "https://teamfront-rapid-photo-upload-frontend.s3-website-us-west-1.amazonaws.com",
-                    "https://*.cloudfront.net"
-                );
+                .addInterceptors(handshakeInterceptor)
+                .setAllowedOriginPatterns("*");
     }
 }
-
+ 

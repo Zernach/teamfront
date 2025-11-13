@@ -1,4 +1,6 @@
 // services/cognito/config.ts
+// IMPORTANT: This import must be first to polyfill crypto for React Native
+import 'react-native-get-random-values';
 import { Amplify } from 'aws-amplify';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';

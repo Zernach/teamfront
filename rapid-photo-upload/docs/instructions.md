@@ -1,3 +1,28 @@
+## Recent Fixes
+
+### iOS Startup Infinite Loop Fix (November 12, 2024)
+
+**Problem:**
+The app was stuck in an infinite loop on iOS startup with two main issues:
+1. Missing `react-native-get-random-values` dependency causing AWS Amplify auth errors
+2. `+not-found.tsx` redirecting to `/` creating an infinite redirect loop
+
+**Solution:**
+1. Added `react-native-get-random-values` to `package.json` - required by AWS Amplify for cryptographic operations
+2. Added import at the top of `services/cognito/config.ts` to polyfill crypto before Amplify initialization
+3. Replaced the redirect in `+not-found.tsx` with a proper 404 screen that renders content instead of redirecting
+
+**Commands to run:**
+```bash
+cd frontend
+yarn install
+# or npm install
+```
+
+Then restart the Expo development server.
+
+---
+
 Product Requirements Document (PRD): RapidPhotoUpload — AI-Assisted High-Volume Photo Upload System
 1. Introduction and Project Goal
 1.1 Project Goal

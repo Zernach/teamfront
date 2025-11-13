@@ -1,11 +1,13 @@
 package com.rapidphotoupload.infrastructure.storage;
 
 import com.rapidphotoupload.domain.aggregates.Photo;
+import com.rapidphotoupload.domain.aggregates.UploadJob;
 import com.rapidphotoupload.domain.events.PhotoUploadStarted;
 import com.rapidphotoupload.domain.repositories.PhotoRepository;
 import com.rapidphotoupload.domain.repositories.UploadJobRepository;
 import com.rapidphotoupload.domain.valueobjects.PhotoId;
 import com.rapidphotoupload.domain.valueobjects.StorageKey;
+import com.rapidphotoupload.infrastructure.monitoring.UploadPerformanceMonitor;
 import com.rapidphotoupload.infrastructure.websocket.ProgressWebSocketHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,18 +31,21 @@ public class PhotoUploadProcessor {
     private final PhotoRepository photoRepository;
     private final UploadJobRepository uploadJobRepository;
     private final ProgressWebSocketHandler webSocketHandler;
+    private final UploadPerformanceMonitor performanceMonitor;
     
     public PhotoUploadProcessor(
             TemporaryFileStorage temporaryFileStorage,
             CloudStorageService storageService,
             PhotoRepository photoRepository,
             UploadJobRepository uploadJobRepository,
-            ProgressWebSocketHandler webSocketHandler) {
+            ProgressWebSocketHandler webSocketHandler,
+            UploadPerformanceMonitor performanceMonitor) {
         this.temporaryFileStorage = temporaryFileStorage;
         this.storageService = storageService;
         this.photoRepository = photoRepository;
         this.uploadJobRepository = uploadJobRepository;
         this.webSocketHandler = webSocketHandler;
+        this.performanceMonitor = performanceMonitor;
     }
     
     /**
@@ -50,10 +55,16 @@ public class PhotoUploadProcessor {
     @EventListener
     public void handlePhotoUploadStarted(PhotoUploadStarted event) {
         PhotoId photoId = event.photoId();
-        logger.info("Processing photo upload: {}", photoId.getValue());
+        String photoIdString = photoId.getValue().toString();
         
         // Extract jobId from the event if available
         String jobIdString = event.jobId() != null ? event.jobId().getValue().toString() : null;
+        
+        // Record upload start for performance monitoring
+        performanceMonitor.recordUploadStart(photoIdString, jobIdString);
+        
+        logger.info("Processing photo upload: {} (Job: {}), Active uploads: {}", 
+            photoIdString, jobIdString, performanceMonitor.getActiveUploadCount());
         
         try {
             // Retrieve photo aggregate
@@ -73,6 +84,7 @@ public class PhotoUploadProcessor {
                 logger.error("File not found in temporary storage for photo: {}", photoId.getValue());
                 photo.markAsFailed("File not found in temporary storage");
                 photoRepository.save(photo);
+                performanceMonitor.recordUploadFailed(photoIdString, "File not found in temporary storage");
                 sendPhotoProgressUpdate(photo, 0, "FAILED", jobIdString);
                 updateJobProgress(jobIdString);
                 return;
@@ -96,10 +108,13 @@ public class PhotoUploadProcessor {
                 // Clean up temporary storage
                 temporaryFileStorage.remove(photoId);
                 
+                // Record completion for performance monitoring
+                performanceMonitor.recordUploadComplete(photoIdString);
+                
                 // Send progress update: completed
                 sendPhotoProgressUpdate(photo, 100, "COMPLETED", jobIdString);
                 
-                // Update job progress
+                // Update job progress and check if job is complete
                 updateJobProgress(jobIdString);
                 
                 logger.info("Photo upload completed successfully: {}", photoId.getValue());
@@ -109,6 +124,7 @@ public class PhotoUploadProcessor {
                 photo.markAsFailed("Storage upload failed: " + e.getMessage());
                 photoRepository.save(photo);
                 temporaryFileStorage.remove(photoId);
+                performanceMonitor.recordUploadFailed(photoIdString, e.getMessage());
                 sendPhotoProgressUpdate(photo, 0, "FAILED", jobIdString);
                 updateJobProgress(jobIdString);
             }
@@ -155,6 +171,7 @@ public class PhotoUploadProcessor {
     /**
      * Update job progress after photo completion/failure.
      * Find the job this photo belongs to and update its progress.
+     * If job is complete, record performance metrics.
      */
     private void updateJobProgress(String jobIdString) {
         try {
@@ -168,6 +185,7 @@ public class PhotoUploadProcessor {
                 .ifPresent(job -> {
                     String userId = job.getUserId().getValue().toString();
                     int completedPhotos = job.getCompletedPhotos().getValue();
+                    int failedPhotos = job.getFailedPhotos().getValue();
                     int totalPhotos = job.getTotalPhotos().getValue();
                     
                     ProgressWebSocketHandler.ProgressMessage message = new ProgressWebSocketHandler.ProgressMessage(
@@ -181,6 +199,13 @@ public class PhotoUploadProcessor {
                     webSocketHandler.sendProgressUpdate(userId, message);
                     logger.debug("Sent job progress update: {}/{} photos completed for job {}", 
                         completedPhotos, totalPhotos, jobIdString);
+                    
+                    // Check if job is complete and record metrics
+                    if (job.isComplete()) {
+                        performanceMonitor.recordJobComplete(jobIdString, totalPhotos);
+                        logger.info("Job {} complete: {} completed, {} failed, {} total", 
+                            jobIdString, completedPhotos, failedPhotos, totalPhotos);
+                    }
                 });
         } catch (Exception e) {
             logger.error("Failed to update job progress for jobId {}: {}", jobIdString, e.getMessage(), e);

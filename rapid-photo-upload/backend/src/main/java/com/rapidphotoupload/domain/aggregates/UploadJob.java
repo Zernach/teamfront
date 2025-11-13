@@ -179,6 +179,53 @@ public class UploadJob {
         return (int) Math.round((completed * 100.0) / total);
     }
 
+    /**
+     * Get count of in-progress photos.
+     */
+    public int getInProgressCount() {
+        int completed = this.completedPhotos.getValue();
+        int failed = this.failedPhotos.getValue();
+        int total = this.totalPhotos.getValue();
+        return Math.max(0, total - completed - failed);
+    }
+
+    /**
+     * Check if job can accept more photos.
+     */
+    public boolean canAddMorePhotos() {
+        return this.photos.size() < this.totalPhotos.getValue();
+    }
+
+    /**
+     * Check if job is complete (all photos processed).
+     */
+    public boolean isComplete() {
+        return this.status == JobStatus.COMPLETED 
+            || this.status == JobStatus.PARTIALLY_FAILED 
+            || this.status == JobStatus.FAILED;
+    }
+
+    /**
+     * Validate business invariants.
+     */
+    public void validateInvariants() {
+        if (this.totalPhotos.getValue() <= 0) {
+            throw new IllegalStateException("Total photos must be greater than 0");
+        }
+        if (this.totalPhotos.getValue() > 100) {
+            throw new IllegalStateException("Total photos cannot exceed 100");
+        }
+        int completed = this.completedPhotos.getValue();
+        int failed = this.failedPhotos.getValue();
+        int total = this.totalPhotos.getValue();
+        if (completed + failed > total) {
+            throw new IllegalStateException("Completed + failed photos cannot exceed total");
+        }
+        if (this.status == JobStatus.COMPLETED && completed != total) {
+            throw new IllegalStateException("COMPLETED jobs must have all photos completed");
+        }
+    }
+
     // Getters
     public JobId getId() {
         return id;

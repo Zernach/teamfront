@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Text } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { Screen } from '../components/screen';
+import { AppIcon } from '../components/app-icon';
 import { CustomButton } from '../components/custom-button';
 import { COLORS } from '../constants/colors';
 
@@ -13,6 +14,9 @@ export default function NotFoundScreen() {
         <>
             <Stack.Screen options={{ title: "Page Not Found" }} />
             <Screen style={styles.container}>
+                <View style={styles.topBar}>
+                    <AppIcon size={36} />
+                </View>
                 <View style={styles.content}>
                     <Text style={styles.title}>404</Text>
                     <Text style={styles.subtitle}>Page Not Found</Text>
@@ -35,6 +39,18 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: COLORS.background,
+    },
+    topBar: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: COLORS.background,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.tan50,
     },
     content: {
         alignItems: 'center',

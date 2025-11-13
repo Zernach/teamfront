@@ -179,6 +179,43 @@ public class Photo {
         this.metadata = metadata;
     }
 
+    /**
+     * Reset photo for retry (from FAILED to QUEUED).
+     * Used by RetryFailedUploadCommand.
+     */
+    public void resetForRetry() {
+        if (this.status != UploadStatus.FAILED) {
+            throw new IllegalStateException("Can only retry photos with FAILED status");
+        }
+        this.status = UploadStatus.QUEUED;
+        // Raise PhotoUploadStarted event to trigger async processing
+        raiseEvent(PhotoUploadStarted.create(this.id, this.uploadedBy, null));
+    }
+
+    /**
+     * Check if photo can be deleted.
+     * Photos in UPLOADING status should not be deleted.
+     */
+    public boolean canDelete() {
+        return this.status != UploadStatus.UPLOADING;
+    }
+
+    /**
+     * Validate business invariants.
+     * Throws IllegalStateException if invariants are violated.
+     */
+    public void validateInvariants() {
+        if (this.status == UploadStatus.COMPLETED && this.storageKey == null) {
+            throw new IllegalStateException("COMPLETED photos must have a storage key");
+        }
+        if (this.fileSize.getValue() <= 0) {
+            throw new IllegalStateException("File size must be greater than 0");
+        }
+        if (this.status == UploadStatus.UPLOADING && this.storageKey != null) {
+            throw new IllegalStateException("UPLOADING photos should not have a storage key yet");
+        }
+    }
+
     // Getters
     public PhotoId getId() {
         return id;

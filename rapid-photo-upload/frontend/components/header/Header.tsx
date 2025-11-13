@@ -1,29 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet } from 'react-native';
 import { COLORS } from '../../constants/colors';
+import { AppIcon } from '../app-icon';
 
 interface HeaderProps {
   title: string;
-  showBack?: boolean;
   rightAction?: React.ReactNode;
 }
 
-export function Header({ title, showBack = true, rightAction }: HeaderProps) {
-  const router = useRouter();
-
+export function Header({ title, rightAction }: HeaderProps) {
   return (
     <View style={styles.container}>
       <View style={styles.left}>
-        {showBack && (
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backButton}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
-        )}
+        <AppIcon size={36} />
       </View>
       <View style={styles.center}>
         <Text style={styles.title}>{title}</Text>
@@ -49,22 +38,17 @@ const styles = StyleSheet.create({
   left: {
     flex: 1,
     alignItems: 'flex-start',
+    justifyContent: 'center',
   },
   center: {
     flex: 2,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   right: {
     flex: 1,
     alignItems: 'flex-end',
-  },
-  backButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  backText: {
-    color: COLORS.primary,
-    fontSize: 16,
+    justifyContent: 'center',
   },
   title: {
     color: COLORS.white,

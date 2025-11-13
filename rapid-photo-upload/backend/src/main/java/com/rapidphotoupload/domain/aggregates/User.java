@@ -178,6 +178,46 @@ public class User {
         return this.roles.contains(role);
     }
 
+    /**
+     * Get available storage in bytes.
+     */
+    public long getAvailableStorage() {
+        return this.storageQuota.getValue() - this.usedStorage.getValue();
+    }
+
+    /**
+     * Get storage usage percentage.
+     */
+    public double getStorageUsagePercentage() {
+        if (this.storageQuota.getValue() == 0) return 0.0;
+        return (this.usedStorage.getValue() * 100.0) / this.storageQuota.getValue();
+    }
+
+    /**
+     * Check if storage is near quota (>= 90%).
+     */
+    public boolean isStorageNearQuota() {
+        return getStorageUsagePercentage() >= 90.0;
+    }
+
+    /**
+     * Validate business invariants.
+     */
+    public void validateInvariants() {
+        if (this.usedStorage.getValue() < 0) {
+            throw new IllegalStateException("Used storage cannot be negative");
+        }
+        if (this.storageQuota.getValue() <= 0) {
+            throw new IllegalStateException("Storage quota must be positive");
+        }
+        if (this.usedStorage.getValue() > this.storageQuota.getValue()) {
+            throw new IllegalStateException("Used storage cannot exceed quota");
+        }
+        if (this.roles.isEmpty()) {
+            throw new IllegalStateException("User must have at least one role");
+        }
+    }
+
     // Getters
     public UserId getId() {
         return id;

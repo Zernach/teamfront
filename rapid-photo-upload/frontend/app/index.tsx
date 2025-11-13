@@ -2,6 +2,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native';
 import { Screen } from '../components/screen';
 import { UserAvatar } from '../components/user-avatar';
+import { AppIcon } from '../components/app-icon';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/colors';
 
@@ -10,7 +11,10 @@ export default function Index() {
 
   return (
     <Screen style={styles.container}>
-      <UserAvatar />
+      <View style={styles.topBar}>
+        <AppIcon size={36} />
+        <UserAvatar />
+      </View>
       <View style={styles.content}>
         <Text style={styles.title}>Rapid Photo Upload</Text>
         <Text style={styles.subtitle}>Upload and manage your photos</Text>
@@ -42,6 +46,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: COLORS.background,
+  },
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.tan50,
   },
   content: {
     alignItems: 'center',

@@ -7,6 +7,7 @@ import Head from 'expo-router/head';
 import { Colors } from '../constants/colors';
 import { store } from '../store';
 import { Toast } from '../components/toast';
+import { AuthGuard } from '../components/AuthGuard';
 
 export default function RootLayout() {
   return (
@@ -17,14 +18,16 @@ export default function RootLayout() {
           <title>Invoice Me</title>
         </Head>
         <GestureHandlerRootView style={styles.container}>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: {
-                backgroundColor: Colors.background,
-              },
-            }}
-          />
+          <AuthGuard>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: {
+                  backgroundColor: Colors.background,
+                },
+              }}
+            />
+          </AuthGuard>
           <Toast />
         </GestureHandlerRootView>
       </SafeAreaProvider>

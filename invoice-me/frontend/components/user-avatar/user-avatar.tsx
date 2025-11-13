@@ -24,19 +24,8 @@ export function UserAvatar({ size = 40, onPress }: UserAvatarProps) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
-  const getBackgroundColor = (name?: string): string => {
-    if (!name) return Colors.primary;
-    // Generate a consistent color based on the name
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const hue = hash % 360;
-    return `hsl(${hue}, 70%, 50%)`;
-  };
-
   const initials = getInitials(user.fullName || user.email);
-  const backgroundColor = getBackgroundColor(user.fullName || user.email);
+  const backgroundColor = Colors.grey;
 
   const avatarContent = (
     <View

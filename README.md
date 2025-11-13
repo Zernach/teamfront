@@ -4,9 +4,11 @@
 
 ## 🌐 AWS CloudFront Frontends
 
-📅 **[smart-scheduler](https://d1it88z15qm1m8.cloudfront.net)** → https://d1it88z15qm1m8.cloudfront.net
+- 📸
+  **[https://teamfront.rapid-photo-upload.archlife.org](https://teamfront.rapid-photo-upload.archlife.org)**
 
-🧾 **[invoice-me](https://d1t46ly28exlox.cloudfront.net)** → https://d1t46ly28exlox.cloudfront.net
+- 📅
+  **[https://teamfront.smart-scheduler.archlife.org](https://teamfront.smart-scheduler.archlife.org)**
 
-📸 **[rapid-photo-upload](https://d2ujb1lb2gj847.cloudfront.net)** → https://d2ujb1lb2gj847.cloudfront.net
-
+- 🧾
+  **[https://teamfront.invoice-me.archlife.org](https://teamfront.invoice-me.archlife.org)**

@@ -15,9 +15,20 @@ DB_ENGINE_VERSION="15.14"
 
 INSTANCE_TYPE="db.t3.micro"
 
-declare -A STORAGE_SIZES
-STORAGE_SIZES[dev]="20"
-STORAGE_SIZES[prod]="100"
+# Storage sizes for different environments
+get_storage_size() {
+    case "$1" in
+        "dev")
+            echo "20"
+            ;;
+        "prod")
+            echo "100"
+            ;;
+        *)
+            echo "20"  # default to dev size
+            ;;
+    esac
+}
 
 if ! command -v aws &> /dev/null; then
     exit 1
@@ -69,13 +80,24 @@ if [ -z "$SG_ID" ] || [ "$SG_ID" == "None" ]; then
         --region ${REGION} \
         --query 'GroupId' \
         --output text 2>/dev/null)
+fi
+
+# Ensure security group allows all incoming connections (0.0.0.0/0) on port 5432
+if [ -n "$SG_ID" ] && [ "$SG_ID" != "None" ]; then
+    # Check if rule already exists for 0.0.0.0/0
+    EXISTING_RULE=$(aws ec2 describe-security-group-rules \
+        --filters "Name=group-id,Values=${SG_ID}" "Name=protocol,Values=tcp" "Name=port-range-from,Values=5432" "Name=port-range-to,Values=5432" \
+        --query "SecurityGroupRules[?CidrIpv4=='0.0.0.0/0'].SecurityGroupRuleId" \
+        --output text \
+        --region ${REGION} 2>/dev/null)
     
-    if [ -n "$SG_ID" ] && [ "$SG_ID" != "None" ]; then
+    if [ -z "$EXISTING_RULE" ] || [ "$EXISTING_RULE" == "None" ]; then
+        # Add rule to allow all traffic from anywhere
         aws ec2 authorize-security-group-ingress \
             --group-id ${SG_ID} \
             --protocol tcp \
             --port 5432 \
-            --cidr $(aws ec2 describe-vpcs --vpc-ids ${DEFAULT_VPC_ID} --query "Vpcs[0].CidrBlock" --output text --region ${REGION}) \
+            --cidr 0.0.0.0/0 \
             --region ${REGION} 2>/dev/null > /dev/null
     fi
 fi
@@ -98,6 +120,22 @@ for PROJECT in "${PROJECTS[@]}"; do
         --output text 2>/dev/null)
     
     if [ -n "$EXISTING_DB" ] && [ "$EXISTING_DB" != "None" ]; then
+        # Check if database is publicly accessible, if not, modify it
+        PUBLICLY_ACCESSIBLE=$(aws rds describe-db-instances \
+            --db-instance-identifier ${DB_IDENTIFIER} \
+            --region ${REGION} \
+            --query "DBInstances[0].PubliclyAccessible" \
+            --output text 2>/dev/null)
+        
+        if [ "$PUBLICLY_ACCESSIBLE" != "True" ]; then
+            # Modify database to be publicly accessible
+            aws rds modify-db-instance \
+                --db-instance-identifier ${DB_IDENTIFIER} \
+                --publicly-accessible \
+                --apply-immediately \
+                --region ${REGION} 2>/dev/null > /dev/null
+        fi
+        
         ENDPOINT=$(aws rds describe-db-instances \
             --db-instance-identifier ${DB_IDENTIFIER} \
             --region ${REGION} \
@@ -126,7 +164,7 @@ for PROJECT in "${PROJECTS[@]}"; do
         fi
     else
         DB_PASSWORD=$(openssl rand -base64 32 | tr -d "=+/" | cut -c1-25)
-        STORAGE_SIZE=${STORAGE_SIZES[$ENV]}
+        STORAGE_SIZE=$(get_storage_size $ENV)
         
         CREATE_CMD="aws rds create-db-instance \
             --db-instance-identifier ${DB_IDENTIFIER} \
@@ -142,6 +180,7 @@ for PROJECT in "${PROJECTS[@]}"; do
             --db-subnet-group-name ${DB_SUBNET_GROUP_NAME} \
             --backup-retention-period $([ "$ENV" == "prod" ] && echo "7" || echo "3") \
             --storage-encrypted \
+            --publicly-accessible \
             --region ${REGION} 2>&1"
         
         if [ "$ENV" == "prod" ]; then

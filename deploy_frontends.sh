@@ -2,6 +2,104 @@
 # Don't exit on error - we want to deploy all projects even if one fails
 set +e
 
+ensure_cloudfront_spa_support() {
+  local project="$1"
+  local dist_id="$2"
+
+  if [ -z "$dist_id" ] || [ "$dist_id" = "None" ]; then
+    return
+  fi
+
+  local tmp_config tmp_body etag spa_status
+  tmp_config=$(mktemp)
+  tmp_body=$(mktemp)
+
+  if ! aws cloudfront get-distribution-config --id "$dist_id" > "$tmp_config" 2>/dev/null; then
+    echo "⚠ Warning: Unable to fetch CloudFront config for ${project} (${dist_id})"
+    rm -f "$tmp_config" "$tmp_body"
+    return
+  fi
+
+  etag=$(jq -r '.ETag' "$tmp_config")
+  if [ -z "$etag" ] || [ "$etag" = "null" ]; then
+    echo "⚠ Warning: Missing ETag for CloudFront distribution ${dist_id}"
+    rm -f "$tmp_config" "$tmp_body"
+    return
+  fi
+
+  jq '.DistributionConfig' "$tmp_config" > "$tmp_body"
+
+  spa_status=$(python3 - "$tmp_body" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path) as fp:
+    config = json.load(fp)
+
+changed = False
+
+if config.get("DefaultRootObject") != "index.html":
+    config["DefaultRootObject"] = "index.html"
+    changed = True
+
+custom = config.get("CustomErrorResponses")
+if not custom:
+    custom = {"Quantity": 0, "Items": []}
+    config["CustomErrorResponses"] = custom
+
+items = custom.get("Items") or []
+desired = {
+    "ResponsePagePath": "/index.html",
+    "ResponseCode": "200",
+    "ErrorCachingMinTTL": 0,
+}
+
+for error_code in (403, 404):
+    existing = next((item for item in items if item.get("ErrorCode") == error_code), None)
+    if existing:
+        for key, value in desired.items():
+            if existing.get(key) != value:
+                existing[key] = value
+                changed = True
+    else:
+        new_item = {"ErrorCode": error_code}
+        new_item.update(desired)
+        items.append(new_item)
+        changed = True
+
+if custom.get("Quantity") != len(items):
+    custom["Quantity"] = len(items)
+    changed = True
+
+custom["Items"] = items
+
+if changed:
+    with open(path, "w") as fp:
+        json.dump(config, fp, indent=2)
+    print("updated")
+else:
+    print("noop")
+PY
+)
+
+  spa_status=$(echo "$spa_status" | tr -d '\n\r ')
+  if [ "$spa_status" = "updated" ]; then
+    if aws cloudfront update-distribution \
+      --id "$dist_id" \
+      --if-match "$etag" \
+      --distribution-config file://"$tmp_body" >/dev/null 2>&1; then
+      echo "✓ Enabled SPA routing fallback for CloudFront distribution ${dist_id}"
+    else
+      echo "⚠ Warning: Failed to update CloudFront distribution ${dist_id}"
+    fi
+  else
+    echo "✓ CloudFront distribution ${dist_id} already supports SPA routing"
+  fi
+
+  rm -f "$tmp_config" "$tmp_body"
+}
+
 PROJECTS=(
   "smart-scheduler"
   "invoice-me"
@@ -107,8 +205,9 @@ for PROJECT in "${PROJECTS[@]}"; do
     --query "DistributionList.Items[?Comment=='${PROJECT} Frontend'].Id" \
     --output text 2>/dev/null | head -1)
   
-  # Invalidate CloudFront cache if distribution exists
+  # Ensure CloudFront delivers SPA routes and invalidate cache if distribution exists
   if [ -n "$DIST_ID" ] && [ "$DIST_ID" != "None" ] && [ "$DIST_ID" != "" ]; then
+    ensure_cloudfront_spa_support "$PROJECT" "$DIST_ID"
     echo "Invalidating CloudFront distribution: ${DIST_ID}..."
     INVALIDATION_ID=$(aws cloudfront create-invalidation \
       --distribution-id ${DIST_ID} \
@@ -152,7 +251,7 @@ if [ ${#SUCCESSFUL_PROJECTS[@]} -gt 0 ]; then
     echo ""
     echo "  ${PROJECT}:"
     echo "    S3 Bucket: ${BUCKET}"
-    echo "    S3 Website: http://${BUCKET}.s3-website-us-west-1.amazonaws.com/"
+    echo "    S3 Website: https://${BUCKET}.s3-website-us-west-1.amazonaws.com/"
     
     if [ -n "$DIST_ID" ] && [ "$DIST_ID" != "None" ] && [ "$DIST_ID" != "" ]; then
       DIST_DOMAIN=$(aws cloudfront get-distribution \
@@ -179,4 +278,3 @@ fi
 echo ""
 echo "All deployments completed successfully!"
 exit 0
-

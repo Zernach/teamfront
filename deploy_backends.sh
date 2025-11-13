@@ -129,7 +129,112 @@ for PROJECT in "${PROJECTS[@]}"; do
     continue
   fi
   
+  # Ensure public access is configured (including CloudFront traffic)
+  echo "Ensuring public access is configured (allows CloudFront and all other traffic)..."
+  REGION="us-west-1"
+  
+  # Get load balancer security groups and open them up
+  LB_ARN=$(aws elasticbeanstalk describe-environment-resources \
+    --environment-name "${EB_ENV}" \
+    --region ${REGION} \
+    --query 'EnvironmentResources.LoadBalancers[0].Name' \
+    --output text 2>/dev/null || echo "")
+  
+  if [ -n "$LB_ARN" ] && [ "$LB_ARN" != "None" ] && [ "$LB_ARN" != "" ]; then
+    LB_TYPE=$(aws elasticbeanstalk describe-environment-resources \
+      --environment-name "${EB_ENV}" \
+      --region ${REGION} \
+      --query 'EnvironmentResources.LoadBalancers[0].Type' \
+      --output text 2>/dev/null || echo "classic")
+    
+    if [ "$LB_TYPE" = "application" ] || [ "$LB_TYPE" = "network" ]; then
+      ALB_ARN=$(aws elbv2 describe-load-balancers \
+        --region ${REGION} \
+        --query "LoadBalancers[?LoadBalancerName=='${LB_ARN}'].LoadBalancerArn" \
+        --output text 2>/dev/null || echo "")
+      
+      if [ -n "$ALB_ARN" ] && [ "$ALB_ARN" != "None" ]; then
+        ALB_SG=$(aws elbv2 describe-load-balancers \
+          --load-balancer-arns "${ALB_ARN}" \
+          --region ${REGION} \
+          --query 'LoadBalancers[0].SecurityGroups[0]' \
+          --output text 2>/dev/null || echo "")
+        
+        if [ -n "$ALB_SG" ] && [ "$ALB_SG" != "None" ]; then
+          aws ec2 authorize-security-group-ingress \
+            --group-id "${ALB_SG}" \
+            --protocol tcp \
+            --port 80 \
+            --cidr 0.0.0.0/0 \
+            --region ${REGION} 2>/dev/null || true
+          aws ec2 authorize-security-group-ingress \
+            --group-id "${ALB_SG}" \
+            --protocol tcp \
+            --port 443 \
+            --cidr 0.0.0.0/0 \
+            --region ${REGION} 2>/dev/null || true
+        fi
+      fi
+    else
+      CLB_SG=$(aws elb describe-load-balancers \
+        --load-balancer-names "${LB_ARN}" \
+        --region ${REGION} \
+        --query 'LoadBalancerDescriptions[0].SecurityGroups[0]' \
+        --output text 2>/dev/null || echo "")
+      
+      if [ -n "$CLB_SG" ] && [ "$CLB_SG" != "None" ]; then
+        aws ec2 authorize-security-group-ingress \
+          --group-id "${CLB_SG}" \
+          --protocol tcp \
+          --port 80 \
+          --cidr 0.0.0.0/0 \
+          --region ${REGION} 2>/dev/null || true
+        aws ec2 authorize-security-group-ingress \
+          --group-id "${CLB_SG}" \
+          --protocol tcp \
+          --port 443 \
+          --cidr 0.0.0.0/0 \
+          --region ${REGION} 2>/dev/null || true
+      fi
+    fi
+  fi
+  
+  # Get EC2 instance security groups and open them up
+  INSTANCE_IDS=$(aws elasticbeanstalk describe-environment-resources \
+    --environment-name "${EB_ENV}" \
+    --region ${REGION} \
+    --query 'EnvironmentResources.Instances[*].Id' \
+    --output text 2>/dev/null || echo "")
+  
+  if [ -n "$INSTANCE_IDS" ] && [ "$INSTANCE_IDS" != "None" ]; then
+    for INSTANCE_ID in $INSTANCE_IDS; do
+      INSTANCE_SGS=$(aws ec2 describe-instances \
+        --instance-ids "${INSTANCE_ID}" \
+        --region ${REGION} \
+        --query 'Reservations[0].Instances[0].SecurityGroups[*].GroupId' \
+        --output text 2>/dev/null || echo "")
+      
+      if [ -n "$INSTANCE_SGS" ] && [ "$INSTANCE_SGS" != "None" ]; then
+        for SG_ID in $INSTANCE_SGS; do
+          aws ec2 authorize-security-group-ingress \
+            --group-id "${SG_ID}" \
+            --protocol tcp \
+            --port 80 \
+            --cidr 0.0.0.0/0 \
+            --region ${REGION} 2>/dev/null || true
+          aws ec2 authorize-security-group-ingress \
+            --group-id "${SG_ID}" \
+            --protocol tcp \
+            --port 443 \
+            --cidr 0.0.0.0/0 \
+            --region ${REGION} 2>/dev/null || true
+        done
+      fi
+    done
+  fi
+  
   echo "✓ Deployment complete for ${PROJECT}!"
+  echo "✓ Public access configured!"
   SUCCESSFUL_PROJECTS+=("${PROJECT}")
   
   # Return to root directory

@@ -21,14 +21,32 @@ for PROJECT in "${PROJECTS[@]}"; do
   # Enable static website hosting
   aws s3 website s3://${BUCKET} --index-document index.html --error-document 404.html
   
-  # Configure public access block to allow public read policies (but block ACLs)
-  # This allows bucket policies to grant public read access while preventing ACL-based public access
+  # Disable ALL public access blocks to make bucket fully public
   aws s3api put-public-access-block \
     --bucket ${BUCKET} \
     --public-access-block-configuration \
-      "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=false,RestrictPublicBuckets=false"
+      "BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false"
   
-  # Create or get existing OAC
+  # Apply public read bucket policy
+  echo "Applying public read bucket policy..."
+  aws s3api put-bucket-policy \
+    --bucket ${BUCKET} \
+    --policy "{
+      \"Version\": \"2012-10-17\",
+      \"Statement\": [
+        {
+          \"Sid\": \"PublicReadGetObject\",
+          \"Effect\": \"Allow\",
+          \"Principal\": \"*\",
+          \"Action\": \"s3:GetObject\",
+          \"Resource\": \"arn:aws:s3:::${BUCKET}/*\"
+        }
+      ]
+    }"
+  
+  echo "✓ Bucket ${BUCKET} is now fully publicly accessible"
+  
+  # Create or get existing OAC (for CloudFront, but bucket is also directly accessible)
   OAC_NAME="${PROJECT}-oac"
   OAC_OUTPUT=$(aws cloudfront list-origin-access-controls --query "OriginAccessControlList.Items[?Name=='${OAC_NAME}'].Id" --output text 2>/dev/null || echo "")
   
@@ -53,11 +71,30 @@ for PROJECT in "${PROJECTS[@]}"; do
     # Create images bucket
     aws s3 mb s3://${IMAGES_BUCKET} --region ${REGION} 2>/dev/null || echo "Images bucket may already exist"
     
-    # Configure public access block for images (more restrictive)
+    # Disable ALL public access blocks for images bucket to make it fully public
     aws s3api put-public-access-block \
       --bucket ${IMAGES_BUCKET} \
       --public-access-block-configuration \
-        "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=false,RestrictPublicBuckets=false"
+        "BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false"
+    
+    # Apply public read bucket policy for images
+    echo "Applying public read bucket policy to images bucket..."
+    aws s3api put-bucket-policy \
+      --bucket ${IMAGES_BUCKET} \
+      --policy "{
+        \"Version\": \"2012-10-17\",
+        \"Statement\": [
+          {
+            \"Sid\": \"PublicReadGetObject\",
+            \"Effect\": \"Allow\",
+            \"Principal\": \"*\",
+            \"Action\": [\"s3:GetObject\", \"s3:PutObject\"],
+            \"Resource\": \"arn:aws:s3:::${IMAGES_BUCKET}/*\"
+          }
+        ]
+      }"
+    
+    echo "✓ Images bucket ${IMAGES_BUCKET} is now fully publicly accessible"
     
     # Enable versioning for images bucket (optional, for data protection)
     aws s3api put-bucket-versioning \

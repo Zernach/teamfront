@@ -21,7 +21,20 @@ export interface VoidPaymentRequest {
   voidReason: string;
 }
 
+export interface ListPaymentsParams {
+  invoiceId: string;
+  status?: 'APPLIED' | 'VOIDED';
+}
+
 export const paymentApi = {
+  async getPaymentById(id: string): Promise<PaymentDetail> {
+    return apiClient.get<PaymentDetail>(`/payments/${id}`);
+  },
+
+  async listPaymentsForInvoice(params: ListPaymentsParams): Promise<PaymentDetail[]> {
+    return apiClient.get<PaymentDetail[]>('/payments', params);
+  },
+
   async voidPayment(
     id: string,
     data: VoidPaymentRequest

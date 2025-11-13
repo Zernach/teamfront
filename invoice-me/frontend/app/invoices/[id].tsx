@@ -1,5 +1,5 @@
 // app/invoices/[id].tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,12 +9,13 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { invoiceApi, InvoiceDetail } from '../../services/api/invoiceApi';
 import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/spacing';
 import { Text } from 'react-native';
 import { Screen } from '../../components/screen';
+import { PaymentList } from '../../components/payment-list';
 
 export default function InvoiceDetailScreen() {
   const router = useRouter();
@@ -37,11 +38,15 @@ export default function InvoiceDetailScreen() {
     }
   }, [id, router]);
 
-  useEffect(() => {
-    if (id) {
-      loadInvoice();
-    }
-  }, [id, loadInvoice]);
+  // Reload invoice data whenever the screen comes into focus
+  // This ensures payment data is refreshed after recording a payment
+  useFocusEffect(
+    useCallback(() => {
+      if (id) {
+        loadInvoice();
+      }
+    }, [id, loadInvoice])
+  );
 
   const handleMarkAsSent = async () => {
     if (!invoice) return;
@@ -212,19 +217,14 @@ export default function InvoiceDetailScreen() {
             </View>
           </View>
 
-          {invoice.payments && invoice.payments.length > 0 && (
+          {(invoice.status === 'SENT' || invoice.status === 'PAID') && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Payment History</Text>
-              {invoice.payments.map((payment) => (
-                <View key={payment.id} style={styles.paymentItem}>
-                  <Text style={styles.paymentAmount}>{formatCurrency(payment.amount)}</Text>
-                  <Text style={styles.paymentDate}>{formatDate(payment.paymentDate)}</Text>
-                  <Text style={styles.paymentMethod}>{payment.paymentMethod}</Text>
-                  {payment.referenceNumber && (
-                    <Text style={styles.paymentRef}>Ref: {payment.referenceNumber}</Text>
-                  )}
-                </View>
-              ))}
+              <PaymentList 
+                key={`payments-${invoice.id}-${invoice.paidAmount}`}
+                invoiceId={invoice.id} 
+                onPaymentVoided={loadInvoice}
+              />
             </View>
           )}
 
@@ -422,31 +422,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.primary,
-  },
-  paymentItem: {
-    marginBottom: Spacing.md,
-    paddingBottom: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.divider,
-  },
-  paymentAmount: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: Spacing.xs,
-  },
-  paymentDate: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  paymentMethod: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  paymentRef: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: Spacing.xs,
   },
   actions: {
     padding: Spacing.md,

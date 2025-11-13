@@ -1246,12 +1246,12 @@ Authorization: Bearer {token}
 
 ### GET /payments
 
-List all payments with filtering.
+List payments for an invoice with optional status filtering.
 
 **Request:**
 
 ```http
-GET /api/v1/payments?customerId=a3b7f8c2-1234-5678-9abc-def012345678&fromDate=2025-01-01&toDate=2025-12-31&status=APPLIED&sortBy=paymentDate&sortDirection=DESC&pageNumber=0&pageSize=20
+GET /api/v1/payments?invoiceId=b5c9d1e3-5678-9012-3def-456789abcdef&status=APPLIED
 Authorization: Bearer {token}
 ```
 
@@ -1259,39 +1259,44 @@ Authorization: Bearer {token}
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| customerId | UUID | No | all | Filter by customer |
-| fromDate | date | No | - | Payment date >= fromDate |
-| toDate | date | No | - | Payment date <= toDate |
-| status | string | No | all | APPLIED, VOIDED |
-| sortBy | string | No | paymentDate | paymentDate, amount |
-| sortDirection | string | No | DESC | ASC, DESC |
-| pageNumber | integer | No | 0 | Page number |
-| pageSize | integer | No | 20 | Items per page |
+| invoiceId | UUID | Yes | - | Invoice ID to list payments for |
+| status | string | No | all | Filter by payment status (APPLIED, VOIDED) |
 
 **Success Response (200 OK):**
 
 ```json
-{
-  "content": [
-    {
-      "id": "payment-uuid-1",
-      "invoiceNumber": "INV-2025-001",
-      "customerName": "John Doe",
-      "amount": 3000.00,
-      "paymentDate": "2025-11-15",
-      "paymentMethod": "CREDIT_CARD",
-      "referenceNumber": "**** 1234",
-      "status": "APPLIED"
-    }
-  ],
-  "pageNumber": 0,
-  "pageSize": 20,
-  "totalElements": 1,
-  "totalPages": 1,
-  "summary": {
-    "totalCollected": 3000.00
+[
+  {
+    "id": "payment-uuid-1",
+    "invoiceId": "b5c9d1e3-5678-9012-3def-456789abcdef",
+    "amount": 3000.00,
+    "paymentDate": "2025-11-15",
+    "paymentMethod": "CREDIT_CARD",
+    "referenceNumber": "**** 1234",
+    "status": "APPLIED",
+    "notes": "First installment payment",
+    "createdAt": "2025-11-15T14:20:00Z",
+    "createdBy": "admin@invoiceme.com",
+    "voidedAt": null,
+    "voidedBy": null,
+    "voidReason": null
+  },
+  {
+    "id": "payment-uuid-2",
+    "invoiceId": "b5c9d1e3-5678-9012-3def-456789abcdef",
+    "amount": 2300.00,
+    "paymentDate": "2025-11-20",
+    "paymentMethod": "BANK_TRANSFER",
+    "referenceNumber": "TRX-2025-11-20-001",
+    "status": "APPLIED",
+    "notes": "Final payment",
+    "createdAt": "2025-11-20T09:30:00Z",
+    "createdBy": "admin@invoiceme.com",
+    "voidedAt": null,
+    "voidedBy": null,
+    "voidReason": null
   }
-}
+]
 ```
 
 ### POST /payments/{id}/void

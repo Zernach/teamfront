@@ -6,6 +6,7 @@ import { Provider } from 'react-redux';
 import Head from 'expo-router/head';
 import { Colors } from '../constants/colors';
 import { store } from '../store';
+import { Toast } from '../components/toast';
 
 export default function RootLayout() {
   return (
@@ -24,6 +25,7 @@ export default function RootLayout() {
               },
             }}
           />
+          <Toast />
         </GestureHandlerRootView>
       </SafeAreaProvider>
     </Provider>

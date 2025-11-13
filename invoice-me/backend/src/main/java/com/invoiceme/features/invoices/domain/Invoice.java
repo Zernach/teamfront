@@ -162,12 +162,6 @@ public class Invoice {
             throw new IllegalArgumentException("Invoice must have at least one line item");
         }
 
-        // Validate invoice date (cannot be in the future)
-        LocalDate today = LocalDate.now();
-        if (invoiceDate.isAfter(today)) {
-            throw new IllegalArgumentException("Invoice date cannot be in the future");
-        }
-
         // Validate due date (must be >= invoice date)
         if (dueDate.isBefore(invoiceDate)) {
             throw new IllegalArgumentException("Due date must be greater than or equal to invoice date");

@@ -88,8 +88,7 @@ public class InvoiceController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (CreateInvoiceCommandHandler.CustomerInactiveException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
-        } catch (IllegalArgumentException | CreateInvoiceCommandHandler.InvalidInvoiceDateException |
-                 CreateInvoiceCommandHandler.InvalidDueDateException e) {
+        } catch (IllegalArgumentException | CreateInvoiceCommandHandler.InvalidDueDateException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }

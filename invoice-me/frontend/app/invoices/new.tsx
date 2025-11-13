@@ -17,6 +17,7 @@ import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/spacing';
 import { Text } from 'react-native';
 import { Screen } from '../../components/screen';
+import { CustomDropdown, DropdownOption } from '../../components/custom-dropdown';
 
 interface LineItem {
   description: string;
@@ -42,6 +43,13 @@ export default function CreateInvoiceScreen() {
   ]);
   const [taxAmount, setTaxAmount] = useState('');
   const [notes, setNotes] = useState('');
+
+  const customerOptions = React.useMemo<DropdownOption[]>(() => {
+    return customers.map((customer) => ({
+      label: customer.fullName,
+      value: customer.id,
+    }));
+  }, [customers]);
 
   const loadCustomers = useCallback(async () => {
     try {
@@ -141,7 +149,6 @@ export default function CreateInvoiceScreen() {
         <View style={styles.form}>
           {!customerId && (
             <View style={styles.section}>
-              <Text style={styles.label}>Customer *</Text>
               {loadingCustomers ? (
                 <ActivityIndicator />
               ) : customers.length === 0 ? (
@@ -159,29 +166,13 @@ export default function CreateInvoiceScreen() {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={styles.customerList}>
-                  {customers.map((customer) => (
-                    <TouchableOpacity
-                      key={customer.id}
-                      style={[
-                        styles.customerOption,
-                        selectedCustomerId === customer.id &&
-                        styles.customerOptionSelected,
-                      ]}
-                      onPress={() => setSelectedCustomerId(customer.id)}
-                    >
-                      <Text
-                        style={[
-                          styles.customerOptionText,
-                          selectedCustomerId === customer.id &&
-                          styles.customerOptionTextSelected,
-                        ]}
-                      >
-                        {customer.fullName}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <CustomDropdown
+                  label="Customer *"
+                  options={customerOptions}
+                  value={selectedCustomerId}
+                  onValueChange={setSelectedCustomerId}
+                  placeholder="Select a customer"
+                />
               )}
             </View>
           )}
@@ -370,28 +361,6 @@ const styles = StyleSheet.create({
   halfWidth: {
     flex: 1,
   },
-  customerList: {
-    gap: Spacing.sm,
-  },
-  customerOption: {
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 8,
-    backgroundColor: Colors.background,
-  },
-  customerOptionSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: Colors.primary + '20',
-  },
-  customerOptionText: {
-    fontSize: 16,
-    color: Colors.text,
-  },
-  customerOptionTextSelected: {
-    color: Colors.primary,
-    fontWeight: '600',
-  },
   lineItem: {
     marginBottom: Spacing.md,
     paddingBottom: Spacing.md,
@@ -430,7 +399,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   createCustomerButtonText: {
-    color: Colors.white,
+    color: Colors.black,
     fontSize: 16,
     fontWeight: '600',
   },

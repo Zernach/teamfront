@@ -7,7 +7,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 public class UpdateInvoiceRequestDto {
-    @PastOrPresent(message = "Invoice date cannot be in the future")
     private LocalDate invoiceDate;
 
     private LocalDate dueDate;
@@ -101,6 +100,8 @@ public class UpdateInvoiceRequestDto {
         }
     }
 }
+
+
 
 
 

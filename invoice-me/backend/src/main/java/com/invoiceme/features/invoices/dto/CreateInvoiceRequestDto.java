@@ -12,7 +12,6 @@ public class CreateInvoiceRequestDto {
     private UUID customerId;
 
     @NotNull(message = "Invoice date is required")
-    @PastOrPresent(message = "Invoice date cannot be in the future")
     private LocalDate invoiceDate;
 
     @NotNull(message = "Due date is required")
@@ -116,6 +115,8 @@ public class CreateInvoiceRequestDto {
         }
     }
 }
+
+
 
 
 

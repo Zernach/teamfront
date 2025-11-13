@@ -7,6 +7,7 @@ export const Colors = {
   success: '#34C759',
   warning: '#FF9500',
   error: '#FF3B30',
+  info: '#007AFF',
   background: '#1c1c1c',
   surface: '#2c2c2c',
   white: '#F0F0F0',

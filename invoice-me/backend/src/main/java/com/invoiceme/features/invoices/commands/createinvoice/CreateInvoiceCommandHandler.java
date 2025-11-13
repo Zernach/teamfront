@@ -35,12 +35,6 @@ public class CreateInvoiceCommandHandler {
             throw new CustomerInactiveException("Customer is not active. Current status: " + customer.getStatus());
         }
 
-        // Validate invoice date (cannot be in the future)
-        LocalDate today = LocalDate.now();
-        if (command.getInvoiceDate().isAfter(today)) {
-            throw new InvalidInvoiceDateException("Invoice date cannot be in the future");
-        }
-
         // Validate due date (must be >= invoice date)
         if (command.getDueDate().isBefore(command.getInvoiceDate())) {
             throw new InvalidDueDateException("Due date must be greater than or equal to invoice date");
@@ -89,18 +83,14 @@ public class CreateInvoiceCommandHandler {
         }
     }
 
-    public static class InvalidInvoiceDateException extends RuntimeException {
-        public InvalidInvoiceDateException(String message) {
-            super(message);
-        }
-    }
-
     public static class InvalidDueDateException extends RuntimeException {
         public InvalidDueDateException(String message) {
             super(message);
         }
     }
 }
+
+
 
 
 

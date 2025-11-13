@@ -47,12 +47,12 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => router.push('/invoices/new')}
+            onPress={() => router.push('/invoices/record-payment')}
           >
-            <Text style={styles.menuIcon}>📄</Text>
-            <Text style={styles.menuTitle}>Create Invoice</Text>
+            <Text style={styles.menuIcon}>💰</Text>
+            <Text style={styles.menuTitle}>Payments</Text>
             <Text style={styles.menuDescription}>
-              Create a new invoice for a customer
+              View unpaid invoices and record payments
             </Text>
           </TouchableOpacity>
         </View>

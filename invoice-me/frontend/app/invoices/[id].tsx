@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { invoiceApi, InvoiceDetail } from '../../services/api/invoiceApi';
@@ -58,30 +59,42 @@ export default function InvoiceDetailScreen() {
   };
 
   const handleCancel = () => {
-    Alert.prompt(
-      'Cancel Invoice',
-      'Enter cancellation reason:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: async (reason: string | undefined) => {
-            if (!reason) {
-              Alert.alert('Error', 'Cancellation reason is required');
-              return;
-            }
-            try {
-              await invoiceApi.cancelInvoice(invoice!.id, { cancellationReason: reason });
-              loadInvoice();
-              Alert.alert('Success', 'Invoice cancelled');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to cancel invoice');
-            }
-          },
+    if (Platform.OS === 'web') {
+      const confirmCancel = window.confirm('Are you sure you want to cancel this invoice?');
+      if (confirmCancel) {
+        (async () => {
+          try {
+            await invoiceApi.cancelInvoice(invoice!.id, {
+              cancellationReason: 'Cancelled by user',
+            });
+            loadInvoice();
+            Alert.alert('Success', 'Invoice cancelled');
+          } catch (error) {
+            Alert.alert('Error', 'Failed to cancel invoice');
+          }
+        })();
+      }
+      return;
+    }
+
+    Alert.alert('Cancel Invoice', 'Are you sure you want to cancel this invoice?', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Yes',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await invoiceApi.cancelInvoice(invoice!.id, {
+              cancellationReason: 'Cancelled by user',
+            });
+            loadInvoice();
+            Alert.alert('Success', 'Invoice cancelled');
+          } catch (error) {
+            Alert.alert('Error', 'Failed to cancel invoice');
+          }
         },
-      ],
-      'plain-text'
-    );
+      },
+    ]);
   };
 
   const formatCurrency = (amount: number) => {
@@ -254,7 +267,7 @@ function getStatusColor(status: string) {
     case 'PAID':
       return Colors.success;
     case 'CANCELLED':
-      return Colors.textSecondary;
+      return Colors.error;
     default:
       return Colors.text;
   }

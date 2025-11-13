@@ -10,7 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { invoiceApi, InvoiceSummary, ListInvoicesParams } from '../../services/api/invoiceApi';
 import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/spacing';
@@ -83,6 +83,14 @@ export default function InvoiceListScreen() {
     return true;
   });
 
+  // Reload invoices automatically when returning to this screen (e.g., after creating a new invoice)
+  useFocusEffect(
+    useCallback(() => {
+      setPageNumber(0);
+      loadInvoices(0);
+    }, [loadInvoices])
+  );
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'DRAFT':
@@ -92,7 +100,7 @@ export default function InvoiceListScreen() {
       case 'PAID':
         return Colors.success;
       case 'CANCELLED':
-        return Colors.textSecondary;
+        return Colors.error;
       default:
         return Colors.text;
     }
